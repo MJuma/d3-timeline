@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Timeline</title>
+
+    <!-- D3 -->
+    <!-- <script src="https://d3js.org/d3.v7.js"></script> -->
+
+    <!-- For custom tooltip example -->
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+
+    <!-- Timeline -->
+    <script src="../dist/timeline/timeline.umd.js"></script>
+</head>
+
+<body>
+
+<div id="timeline"></div>
+
+<fieldset>
+    <input id="width" placeholder="width" />
+    <input id="height" placeholder="height" />
+    <input id="margin" placeholder="margin" />
+    <input id="backgroundColor" placeholder="background color" />
+
+    <button onclick="updateTimeline()">Submit</button>
+</fieldset>
+
+<script>
+    const noGroup = [
+            {
+                start: '2022-01-01T00:00:00.000Z',
+                end: '2022-01-01T00:00:16.000Z',
+                name: 'Alpha',
+            },
+            {
+                start: '2022-01-01T00:00:00.000Z',
+                end: '2022-01-01T00:00:03.000Z',
+                name: 'Bravo',
+            },
+            {
+                start: '2022-01-01T00:00:01.000Z',
+                end: '2022-01-01T00:00:04.000Z',
+                name: 'Charlie',
+            },
+            {
+                start: '2022-01-01T00:00:01.000Z',
+                end: '2022-01-01T00:00:06.000Z',
+                name: 'Delta',
+            },
+            {
+                start: '2022-01-01T00:00:03.000Z',
+                end: '2022-01-01T00:00:10.000Z',
+                name: 'Echo',
+            },
+            {
+                start: '2022-01-01T00:00:07.000Z',
+                // end: '2022-01-01T00:00:12.000Z',
+                name: 'Foxtrot',
+            },
+            {
+                start: '2022-01-01T00:00:13.000Z',
+                end: '2022-01-01T00:00:16.000Z',
+                name: 'Golf',
+            },
+            {
+                start: '2022-01-01T00:00:21.000Z',
+                end: '2022-01-01T00:00:25.000Z',
+                name: 'Hotel',
+            },
+            {
+                start: '2022-01-01T00:00:22.000Z',
+                end: '2022-01-01T00:00:24.000Z',
+                name: 'India',
+            },
+            {
+                start: '2022-01-01T00:00:26.000Z',
+                end: '2022-01-01T00:00:30.000Z',
+                name: 'Juliette',
+            },
+            {
+                start: '2022-01-01T00:00:40.000Z',
+                end: '2022-01-01T00:00:59.000Z',
+                name: 'Kilo',
+            },
+            {
+                start: '2022-01-01T00:00:40.000Z',
+                end: '2022-01-01T00:00:51.000Z',
+                name: 'Lima',
+            },
+            {
+                start: '2022-01-01T00:00:41.000Z',
+                end: '2022-01-01T00:00:43.000Z',
+                name: 'Mike',
+            },
+            {
+                start: '2022-01-01T00:00:41.000Z',
+                // end: '2022-01-01T00:00:42.000Z',
+                name: 'November',
+            },
+            {
+                start: '2022-01-01T00:00:41.000Z',
+                end: '2022-01-01T00:00:42.000Z',
+                name: 'Oscar',
+            },
+            {
+                start: '2022-01-01T00:00:43.000Z',
+                end: '2022-01-01T00:00:47.000Z',
+                name: 'Papa',
+            },
+            {
+                start: '2022-01-01T00:00:52.000Z',
+                end: '2022-01-01T00:00:57.000Z',
+                name: 'Quebec',
+            },
+            {
+                start: '2022-01-01T00:00:52.000Z',
+                end: '2022-01-01T00:00:56.000Z',
+                name: 'Romeo',
+            },
+            {
+                start: '2022-01-01T00:00:52.000Z',
+                end: '2022-01-01T00:00:57.000Z',
+                name: 'Sierra',
+            },
+            {
+                start: '2022-01-01T00:00:52.000Z',
+                end: '2022-01-01T00:00:53.000Z',
+                name: 'Tango',
+            },
+            {
+                start: '2022-01-01T00:00:54.000Z',
+                end: '2022-01-01T00:00:56.000Z',
+                name: 'Uniform',
+            },
+            {
+                start: '2022-01-01T00:00:26.000Z',
+                // end: '2022-01-01T00:00:30.000Z',
+                name: 'Victor',
+            },
+            {
+                start: '2022-01-01T00:00:27.000Z',
+                end: '2022-01-01T00:00:34.000Z',
+                name: 'Whiskey',
+            },
+            {
+                start: '2022-01-01T00:00:27.000Z',
+                end: '2022-01-01T00:00:31.000Z',
+                name: 'X-ray',
+            },
+            {
+                start: '2022-01-01T00:00:28.000Z',
+                end: '2022-01-01T00:00:34.000Z',
+                name: 'Yankee',
+            },
+            {
+                start: '2022-01-01T00:00:30.000Z',
+                end: '2022-01-01T00:00:32.000Z',
+                name: 'Zulu',
+            },
+        ];
+
+    const alphabetGroup = [
+        {
+            start: '2022-01-01T00:00:00.000Z',
+            end: '2022-01-01T00:00:16.000Z',
+            name: 'Alpha',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:00.000Z',
+            end: '2022-01-01T00:00:03.000Z',
+            name: 'Bravo',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:01.000Z',
+            end: '2022-01-01T00:00:04.000Z',
+            name: 'Charlie',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:01.000Z',
+            end: '2022-01-01T00:00:06.000Z',
+            name: 'Delta',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:03.000Z',
+            end: '2022-01-01T00:00:10.000Z',
+            name: 'Echo',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:07.000Z',
+            // end: '2022-01-01T00:00:12.000Z',
+            name: 'Foxtrot',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:13.000Z',
+            end: '2022-01-01T00:00:16.000Z',
+            name: 'Golf',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:21.000Z',
+            end: '2022-01-01T00:00:25.000Z',
+            name: 'Hotel',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:22.000Z',
+            end: '2022-01-01T00:00:24.000Z',
+            name: 'India',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:26.000Z',
+            end: '2022-01-01T00:00:30.000Z',
+            name: 'Juliette',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:40.000Z',
+            end: '2022-01-01T00:00:59.000Z',
+            name: 'Kilo',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:40.000Z',
+            end: '2022-01-01T00:00:51.000Z',
+            name: 'Lima',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:41.000Z',
+            end: '2022-01-01T00:00:43.000Z',
+            name: 'Mike',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:41.000Z',
+            // end: '2022-01-01T00:00:42.000Z',
+            name: 'November',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:41.000Z',
+            end: '2022-01-01T00:00:42.000Z',
+            name: 'Oscar',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:43.000Z',
+            end: '2022-01-01T00:00:47.000Z',
+            name: 'Papa',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:52.000Z',
+            end: '2022-01-01T00:00:57.000Z',
+            name: 'Quebec',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:52.000Z',
+            end: '2022-01-01T00:00:56.000Z',
+            name: 'Romeo',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:52.000Z',
+            end: '2022-01-01T00:00:57.000Z',
+            name: 'Sierra',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:52.000Z',
+            end: '2022-01-01T00:00:53.000Z',
+            name: 'Tango',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:54.000Z',
+            end: '2022-01-01T00:00:56.000Z',
+            name: 'Uniform',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:26.000Z',
+            // end: '2022-01-01T00:00:30.000Z',
+            name: 'Victor',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:27.000Z',
+            end: '2022-01-01T00:00:34.000Z',
+            name: 'Whiskey',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:27.000Z',
+            end: '2022-01-01T00:00:31.000Z',
+            name: 'X-ray',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:28.000Z',
+            end: '2022-01-01T00:00:34.000Z',
+            name: 'Yankee',
+            group: 'Alphabet',
+        },
+        {
+            start: '2022-01-01T00:00:30.000Z',
+            end: '2022-01-01T00:00:32.000Z',
+            name: 'Zulu',
+            group: 'Alphabet',
+        },
+    ];
+
+    const dwarfsGroup = [
+        {
+            start: '2022-01-01T00:00:10.000Z',
+             end: '2022-01-01T00:00:23.000Z',
+            name: 'Bashful',
+            group: 'Dwarf',
+        },
+        {
+            start: '2022-01-01T00:00:12.000Z',
+            end: '2022-01-01T00:00:13.000Z',
+            name: 'Doc',
+            group: 'Dwarf',
+        },
+        {
+            start: '2022-01-01T00:00:11.000Z',
+            end: '2022-01-01T00:00:16.000Z',
+            name: 'Dopey',
+            group: 'Dwarf',
+        },
+        {
+            start: '2022-01-01T00:00:15.000Z',
+            end: '2022-01-01T00:00:25.000Z',
+            name: 'Grumpy',
+            group: 'Dwarf',
+        },
+        {
+            start: '2022-01-01T00:00:22.000Z',
+            end: '2022-01-01T00:00:35.000Z',
+            name: 'Happy',
+            group: 'Dwarf',
+        },
+        {
+            start: '2022-01-01T00:00:03.000Z',
+            end: '2022-01-01T00:00:10.000Z',
+            name: 'Sleepy',
+            group: 'Dwarf',
+        },
+        {
+            start: '2022-01-01T00:00:22.000Z',
+            end: '2022-01-01T00:00:25.000Z',
+            name: 'Sneezy',
+            group: 'Dwarf',
+        },
+        {
+            start: '2022-01-01T00:00:15.000Z',
+            name: 'Snow',
+            group: 'Dwarf',
+        },
+    ];
+
+    const planetsGroup = [
+        {
+            start: '2022-01-01T00:00:05.000Z',
+            end: '2022-01-01T00:00:07.000Z',
+            name: 'Mercury',
+            group: 'Planet',
+        },
+        {
+            start: '2022-01-01T00:00:08.000Z',
+            end: '2022-01-01T00:00:10.000Z',
+            name: 'Venus',
+            group: 'Planet',
+        },
+        {
+            start: '2022-01-01T00:00:12.000Z',
+            end: '2022-01-01T00:00:17.000Z',
+            name: 'Earth',
+            group: 'Planet',
+        },
+        {
+            start: '2022-01-01T00:00:15.000Z',
+            name: 'Moon',
+            group: 'Planet',
+        },
+        {
+            start: '2022-01-01T00:00:20.000Z',
+            end: '2022-01-01T00:00:25.000Z',
+            name: 'Mars',
+            group: 'Planet',
+        },
+        {
+            start: '2022-01-01T00:00:30.000Z',
+            end: '2022-01-01T00:00:40.000Z',
+            name: 'Jupiter',
+            group: 'Planet',
+        },
+        {
+            start: '2022-01-01T00:00:45.000Z',
+            end: '2022-01-01T00:01:00.000Z',
+            name: 'Saturn',
+            group: 'Planet',
+        },
+        {
+            start: '2022-01-01T00:01:05.000Z',
+            end: '2022-01-01T00:01:15.000Z',
+            name: 'Uranus',
+            group: 'Planet',
+        },
+        {
+            start: '2022-01-01T00:01:20.000Z',
+            end: '2022-01-01T00:01:30.000Z',
+            name: 'Neptune',
+            group: 'Planet',
+        },
+    ];
+
+    const data = [
+        // ...noGroup,
+        ...alphabetGroup,
+        ...dwarfsGroup,
+        ...planetsGroup,
+    ];
+    const domElement = '#timeline';
+    // const colorScale = d3.scaleOrdinal(d3.schemePastel1);
+    let selectedNode;
+
+    const chart = timeline()
+        .width(1200)
+        .height(600)
+        .margin({ top: 20, left: 20, bottom: 20, right: 20 })
+        .backgroundColor('#EAEAEA')
+        // .nodeColor((node) => colorScale(node.start))
+        .textColor((node) => 'black')
+        // .tooltips(true)
+        .tooltips(customTooltip)
+        .xAxis(true)
+        .xBrush(true)
+        .highlight((d) => {
+            const result = selectedNode === undefined ? undefined : d.name === selectedNode;
+            // console.log(d.name, result);
+            return result;
+        })
+        .click((node) => {
+            if (selectedNode && node.name === selectedNode) {
+                console.log('clearing');
+                selectedNode = undefined;
+            } else {
+                console.log('setting');
+                selectedNode = node.name;
+            }
+        })
+        .data(data)
+        .render(domElement);
+
+    let tippyInstance;
+    function customTooltip(element, visible, node) {
+        if (tippyInstance) {
+            tippyInstance.destroy();
+        }
+
+        if (visible) {
+            tippyInstance = tippy(element, {
+                content: `
+                    <div style="display: flex; flex-direction: column">
+                        <span>Name: ${node.name}</span>
+                        <span>Start: ${node.start}</span>
+                        ${node.end ? `<span>End: ${node.end}</span>` : ''}
+                    </div>
+                `,
+                allowHTML: true,
+                showOnCreate: true,
+            });
+        }
+    }
+
+    function updateTimeline() {
+        const width = document.getElementById('width').value;
+        if (width && !isNaN(width)) {
+            console.log('Updating width');
+            chart.width(+width);
+        }
+
+        const height = document.getElementById('height').value;
+        if (height && !isNaN(height)) {
+            console.log('Updating height');
+            chart.height(+height);
+        }
+
+        let margin = document.getElementById('margin').value;
+        if (margin && !isNaN(margin)) {
+            console.log('Updating margin');
+            margin = +margin;
+            chart.margin({ top: margin, left: margin, bottom: margin, right: margin });
+        }
+
+        const backgroundColor = document.getElementById('backgroundColor').value;
+        if (backgroundColor && typeof backgroundColor === 'string') {
+            console.log('Updating background color');
+            chart.backgroundColor(backgroundColor);
+        }
+    }
+
+</script>
+</body>
+</html>

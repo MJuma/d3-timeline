@@ -1,0 +1,47 @@
+{
+  "name": "timeline",
+  "version": "1.0.0",
+  "description": "D3 timeline",
+  "keywords": [
+    "d3",
+    "timeline",
+    "time-series"
+  ],
+  "author": {
+    "name": "M Juma",
+    "url": "https://github.com/MJuma"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/MJuma/d3-timeline",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MJuma/d3-timeline.git"
+  },
+  "main": "dist/timeline/timeline.cjs.js",
+  "module": "dist/timeline/timeline.esm.js",
+  "browser": "dist/timeline/timeline.umd.js",
+  "typings": "dist/timeline/timeline.d.ts",
+  "scripts": {
+    "clean": "rimraf dist/*",
+    "build:dev": "npm run clean && rollup --config rollup.config.ts --configPlugin typescript --environment BUILD:development",
+    "build:prod": "npm run clean && rollup --config rollup.config.ts --configPlugin typescript --environment BUILD:production",
+    "watch:dev": "npm run build:dev -- --watch"
+  },
+  "files": [
+    "dist/**/*",
+    "example/**/*"
+  ],
+  "dependencies": {
+    "d3": "7.4.4"
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "13.3.0",
+    "@rollup/plugin-typescript": "8.3.2",
+    "@types/d3": "7.4.0",
+    "rimraf": "3.0.2",
+    "rollup": "2.75.3",
+    "rollup-plugin-dts": "4.2.2",
+    "rollup-plugin-esbuild": "4.9.1",
+    "typescript": "4.7.2"
+  }
+}
