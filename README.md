@@ -3,18 +3,20 @@
 ![GitHub](https://img.shields.io/github/license/mjuma/d3-timeline)
 ![npm (scoped)](https://img.shields.io/npm/v/@mhjuma/timeline)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/mjuma/d3-timeline)
-![npm bundle size (scoped)](https://img.shields.io/bundlephobia/min/@mhjuma/timeline)
-![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/mjuma/d3-timeline)
-![npm](https://img.shields.io/npm/dw/@mhjuma/timeline)
+<!-- ![npm bundle size (scoped)](https://img.shields.io/bundlephobia/min/@mhjuma/timeline) -->
+<!-- ![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/mjuma/d3-timeline) -->
+<!-- ![npm](https://img.shields.io/npm/dw/@mhjuma/timeline) -->
 
 d3 timeline with brush axis.
+
+![Screenshot](https://i.imgur.com/EcQvg7R.png)
 
 ## Installation
 
 ### NPM
 
 ```javascript
-npm install @mjuma/timeline
+npm install @mhjuma/timeline
 ```
 
 ### CDN
