@@ -1,5 +1,5 @@
 {
-  "name": "@mjuma/timeline",
+  "name": "@mhjuma/timeline",
   "version": "1.0.0",
   "description": "D3 timeline",
   "keywords": [
@@ -7,15 +7,21 @@
     "timeline",
     "time-series"
   ],
-  "author": {
-    "name": "M Juma",
-    "url": "https://github.com/MJuma"
-  },
+  "author": "M Juma (https://github.com/MJuma)",
   "license": "MIT",
   "homepage": "https://github.com/MJuma/d3-timeline",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MJuma/d3-timeline.git"
+    "url": "git+https://github.com/MJuma/d3-timeline.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MJuma/d3-timeline/issues"
+  },
+  "directories": {
+    "doc": "docs"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "main": "dist/timeline.cjs.js",
   "module": "dist/timeline.js",

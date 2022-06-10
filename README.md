@@ -1,10 +1,11 @@
 # D3 Timeline
 
-[![NPM package][npm-img]][npm-url]
-
-[![Build Size][build-size-img]][build-size-url]
-
-[![NPM Downloads][npm-downloads-img]][npm-downloads-url]
+![GitHub](https://img.shields.io/github/license/mjuma/d3-timeline)
+![npm (scoped)](https://img.shields.io/npm/v/@mhjuma/timeline)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/mjuma/d3-timeline)
+![npm bundle size (scoped)](https://img.shields.io/bundlephobia/min/@mhjuma/timeline)
+![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/mjuma/d3-timeline)
+![npm](https://img.shields.io/npm/dw/@mhjuma/timeline)
 
 d3 timeline with brush axis.
 
@@ -19,7 +20,7 @@ npm install @mjuma/timeline
 ### CDN
 
 ```html
-<script type="text/javascript" src="https://unpkg.com/@mjuma/timeline"></script>
+<script type="text/javascript" src="https://unpkg.com/@mhjuma/timeline"></script>
 ```
 
 ## Usage
@@ -105,8 +106,8 @@ This project was inspired by the following projects:
 
 ## Changelog
 
-[View recent updates](https://github.com/mjuma/d3-timeline/blob/main/CHANGELOG.md)
+[View recent updates](https://github.com/MJuma/d3-timeline/blob/master/CHANGELOG.md)
 
 ## License
 
-[MIT](https://github.com/mjuma/d3-timeline/blob/main/LICENSE.md)
+[MIT](https://github.com/MJuma/d3-timeline/blob/master/LICENSE)
