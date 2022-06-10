@@ -1,4 +1,4 @@
-import type { Selection, } from 'd3';
+import type { Selection, } from 'd3-selection';
 
 export type Foo<S, D> = <T extends S | undefined = undefined>(someInput?: T) => T extends undefined ? S : D;
 export type GetterSetter<Getter, Setter> = <Param extends Setter | undefined = undefined>(param?: Param) => Param extends undefined ? Setter : Getter;
@@ -8,8 +8,10 @@ export interface Timeline<T extends Data> {
     height: GetterSetter<Timeline<T>, number>;
     margin: GetterSetter<Timeline<T>, Margin>;
     backgroundColor: GetterSetter<Timeline<T>, string>;
+    gridColor: GetterSetter<Timeline<T>, string>;
     nodeColor: (color: Color<T>) => Timeline<T>;
     textColor: (color: Color<T>) => Timeline<T>;
+    text: (text: Text<T>) => Timeline<T>;
     tooltips: GetterSetter<Timeline<T>, Tooltips<T> | boolean>;
     xAxis: GetterSetter<Timeline<T>, boolean>;
     xBrush: GetterSetter<Timeline<T>, boolean>;
@@ -21,9 +23,10 @@ export interface Timeline<T extends Data> {
 
 export interface Data {
     name: string;
-    start: string;
-    end?: string;
+    start: Date | string;
+    end?: Date | string;
     group?: string;
+    track?: number;
 }
 
 export interface Options<T extends Data = Data> {
@@ -33,9 +36,12 @@ export interface Options<T extends Data = Data> {
     width: number;
     height: number;
     margin: Margin;
+    rowHeight: number;
     backgroundColor: string;
+    gridColor: string;
     nodeColor?: Color<T>;
     textColor?: Color<T>;
+    text?: Text<T>;
     showTooltips: boolean;
     tooltips?: Tooltips<T>;
     xAxis: boolean;
@@ -46,6 +52,7 @@ export interface Options<T extends Data = Data> {
 }
 
 export type Color<T extends Data> = (data: T) => string;
+export type Text<T extends Data> = (data: T) => string;
 export type Click<T extends Data> = (data: T) => void;
 export type Highlight<T extends Data> = (data: T) => boolean;
 export type Tooltips<T extends Data> = (domElement: SVGGElement, visible: boolean, data: T) => void;

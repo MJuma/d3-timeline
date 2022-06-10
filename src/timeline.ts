@@ -1,9 +1,19 @@
-import * as d3 from 'd3';
+import { axisBottom } from 'd3-axis';
+import { extent, group } from 'd3-array';
+import { brushX } from 'd3-brush';
+import { scaleOrdinal, scaleTime } from 'd3-scale';
+import { schemeAccent } from 'd3-scale-chromatic';
+import { select } from 'd3-selection';
 
-import type { BaseType, D3BrushEvent, ScaleTime, Selection } from 'd3';
-import type { ChartContainer, Click, Color, Data, GetterSetter, Highlight, Margin, Options, Timeline, Tooltips } from './contracts';
+import type { InternMap } from 'd3-array';
+import type { D3BrushEvent } from 'd3-brush';
+import type { ScaleTime } from 'd3-scale';
+import type { BaseType, Selection } from 'd3-selection';
 
-const { axisBottom, brushX, extent, group, scaleOrdinal, scaleTime, schemeAccent, select } = d3;
+import type { ChartContainer, Click, Color, Data, GetterSetter, Highlight, Margin, Options, Text, Timeline, Tooltips } from './contracts';
+
+export { Click, Color, Data, GetterSetter, Highlight, Margin, Text, Timeline, Tooltips };
+
 const colors = scaleOrdinal(schemeAccent);
 
 export function timeline<T extends Data = Data>() {
@@ -20,11 +30,13 @@ export function timeline<T extends Data = Data>() {
     const options: Options = {
         outerWidth: outerWidth,
         outerHeight: outerHeight,
-        brushHeight: 70,
+        brushHeight: 50,
         width: width,
         height: height,
         margin: margin,
-        backgroundColor: '#EEEEEE',
+        rowHeight: 20,
+        backgroundColor: '#FFFFFF',
+        gridColor: '#EAEAEA',
         showTooltips: false,
         xAxis: false,
         xBrush: false,
@@ -36,7 +48,7 @@ export function timeline<T extends Data = Data>() {
 
     const timeline: Timeline<T> = {
         width: function(width?: number) {
-            if (width !== undefined) {
+            if (typeof width === 'number') {
                 options.outerWidth = width;
                 options.width = options.outerWidth - options.margin.left - options.margin.right;
 
@@ -93,6 +105,18 @@ export function timeline<T extends Data = Data>() {
                 return options.backgroundColor;
             }
         } as GetterSetter<Timeline<T>, string>,
+        gridColor: function(color?: string) {
+            if (typeof color === 'string') {
+                options.gridColor = color;
+
+                if (chartContainer) {
+                    updateChart(chartContainer.container, timelineXScale, brushXScale, options);
+                }
+                return timeline;
+            } else {
+                return options.backgroundColor;
+            }
+        } as GetterSetter<Timeline<T>, string>,
         nodeColor: function(color: Color<T>) {
             options.nodeColor = color;
 
@@ -103,6 +127,14 @@ export function timeline<T extends Data = Data>() {
         },
         textColor: function(color: Color<T>) {
             options.textColor = color;
+
+            if (chartContainer) {
+                updateChartContainer(chartContainer, options);
+            }
+            return timeline;
+        },
+        text: function(text: Text<T>) {
+            options.text = text;
 
             if (chartContainer) {
                 updateChartContainer(chartContainer, options);
@@ -246,48 +278,91 @@ function updateChartContainer(chartContainer: ChartContainer, options: Options):
 function createXScale(options: Options): ScaleTime<number, number> {
     return scaleTime()
         .domain(extent([...options.data.map(d => new Date(d.start)), ...options.data.map(d => new Date(d.end))]))
-        .range([16, options.width - 16])
-        .nice();
+        .range([16, options.width - 16]);
+}
+
+function normalizeGroupName(group: string): string {
+    return (group || 'none').toLocaleLowerCase().replaceAll(' ', '-');
+}
+
+function getGroupContainerId(group: string): string {
+    return `group-${normalizeGroupName(group)}-container`;
+}
+
+function getGroupSvgId(group: string): string {
+    return `group-${normalizeGroupName(group)}-svg`;
 }
 
 function updateChart(chart: Selection<HTMLDivElement, unknown, null, undefined>, timelineXScale: ScaleTime<number, number>, brushXScale: ScaleTime<number, number>, options: Options): void {
-    updateGroups(chart, options);
-    updateNodes(chart, timelineXScale, options)
+    const groupMap: InternMap<string, Data[]> = group(options.data, d => d.group);
+
+    updateGroups(chart, groupMap, options);
+    updateGridlines(chart, timelineXScale, groupMap, options);
+    updateNodes(chart, timelineXScale, groupMap, options)
     updateAxis(chart, timelineXScale, options);
-    updateBrush(chart, brushXScale, timelineXScale, options);
+    updateBrush(chart, brushXScale, timelineXScale, groupMap, options);
 }
 
-function updateGroups(chart: Selection<HTMLDivElement, unknown, null, undefined>, options: Options): void {
-    const groupMap = group(options.data, d => d.group);
-    const brushHeight = options.xBrush ? options.brushHeight : 0;
-    const groupHeight = (options.height - brushHeight) / (groupMap.size || 1);
-    const rowHeight = 20;
+function updateGroups(chart: Selection<HTMLDivElement, unknown, null, undefined>, groupMap: InternMap<string, Data[]>, options: Options): void {
+    const brushHeight = options.xBrush ? options.brushHeight + (options.xAxis ? 20 : 0) : 0;
+    const groupHeight = (options.height - brushHeight - (options.xAxis ? 20 : 0)) / (groupMap.size || 1);
 
     chart
         .selectAll('div')
         .data(groupMap)
         .join(
             function enter(enter) {
-                return enter
-                    // Create group container
+                // Create group container
+                const group = enter
                     .append('div')
-                        .attr('id', g => `group-${g[0]}-container`)
+                        .attr('id', g => getGroupContainerId(g[0]))
                         .style('border-bottom', (_, index, array) => array.length - 1 === index ? '' : '1px solid')
                         .style('width', '100%')
                         .style('height', `${groupHeight}px`)
                         .style('overflow-y', 'auto')
-                        .style('overflow-x', 'hidden')
-                    // Create group svg
+                        .style('overflow-x', 'hidden');
+
+                    
+                // Create group svg
+                const svg = group
                     .append('svg')
-                        .attr('id', g => `group-${g[0]}-svg`)
+                        .attr('id', g => getGroupSvgId(g[0]))
                         .attr('width', '100%')
-                        .attr('height', (g) => `${Math.max(groupHeight, g[1].length * rowHeight)}px`);
+                        .attr('height', (g) => `${Math.max(groupHeight, g[1].length * options.rowHeight)}px`);
+
+                // Add group name
+                svg
+                    .append('g')
+                    .attr('class', 'group-label')
+                    .append('text')
+                    .style('font', '11px sans-serif')
+                    .attr('transform', 'translate(0, 50) rotate(270)')
+                    .attr('x', (groupHeight / 2) * -1)
+                    .attr('y', 12)
+                    .text((g) => g[0])
+                    .each(function() {
+                        const self = select(this);
+                        let textLength = self.node().getComputedTextLength();
+                        let text = self.text();
+                        while (textLength > (groupHeight - 2 * 4) && text.length > 0) {
+                            text = text.slice(0, -1);
+                            self.text(text + '...');
+                            textLength = self.node().getComputedTextLength();
+                        }
+                    });
+
+                // Add gridlines group
+                svg
+                    .append('g')
+                    .attr('class', 'gridlines');
+
+                return svg;
             },
             function update(update) {
                 return update
                     .style('height', `${groupHeight}px`)
                     .selectAll('svg')
-                    .attr('height', (g) => `${Math.max(groupHeight, g[1].length * rowHeight)}px`) as Selection<SVGElement, [string, Data[]], HTMLDivElement, unknown>;
+                    .attr('height', (g) => `${Math.max(groupHeight, g[1].length * options.rowHeight)}px`) as Selection<SVGElement, [string, Data[]], HTMLDivElement, unknown>;
             },
             function exit(exit) {
                 return exit.remove();
@@ -295,27 +370,63 @@ function updateGroups(chart: Selection<HTMLDivElement, unknown, null, undefined>
         );
 }
 
-function updateNodes(chart: Selection<HTMLDivElement, unknown, null, undefined>, timelineXScale: ScaleTime<number, number>, options: Options): void {
-    const groups = Array.from(new Set(options.data.map((d: Data) => d.group)));
-    const rowHeight = 20;
-    const nodeHeight = rowHeight * 0.8;
+function updateGridlines(chart: Selection<HTMLDivElement, unknown, null, undefined>, timelineXScale: ScaleTime<number, number>, groupMap: InternMap<string, Data[]>, options: Options): void {
+    const brushHeight = options.xBrush ? options.brushHeight + (options.xAxis ? 20 : 0) : 0;
+    const groupHeight = (options.height - brushHeight - (options.xAxis ? 20 : 0)) / (groupMap.size || 1);
 
-    for (const group of groups) {
-        const groupId = `#group-${group}-svg`;
+    for (const group of groupMap.keys()) {
+        const groupId = `#${getGroupSvgId(group)}`;
+
+        chart
+            .select(groupId)
+            .select('.gridlines')
+            .selectAll('line')
+            .data(timelineXScale.ticks(20), (d: Date) => d.getTime())
+            .join(
+                function enter(enter) {
+                    return enter
+                        .append('line')
+                        .attr('y1', 0)
+                        .attr('shape-rendering', 'crispEdges')
+                        .attr('stroke-width', '1px').attr('x1', d => timelineXScale(d))
+                        .attr('x2', d => timelineXScale(d))
+                        .attr('y2', Math.max(groupHeight, groupMap.get(group).length * options.rowHeight))
+                        .attr('stroke', options.gridColor);
+                },
+                function update(update) {
+                    return update
+                        .attr('x1', d => timelineXScale(d))
+                        .attr('x2', d => timelineXScale(d))
+                        .attr('y2', Math.max(groupHeight, groupMap.get(group).length * options.rowHeight))
+                        .attr('stroke', options.gridColor);
+                },
+                function exit(exit) {
+                    return exit.remove();
+                },
+            );
+    }
+}
+
+function updateNodes(chart: Selection<HTMLDivElement, unknown, null, undefined>, timelineXScale: ScaleTime<number, number>, groupMap: InternMap<string, Data[]>, options: Options): void {
+    const nodeHeight = options.rowHeight * 0.8;
+
+    for (const group of groupMap.keys()) {
+        const groupId = `#${getGroupSvgId(group)}`;
         const groupData = options.data.filter(d => d.group === group);
 
         // Add svg group for each data point in dataset group to svg
-        chart.select(groupId)
-            .selectAll('g')
-            .data(groupData, (d: Data) => d.start)
+        chart
+            .select(groupId)
+            .selectAll('g.datapoint')
+            .data(groupData, (d: Data) => d.start.toString())
             .join(
                 function enter(enter) {
                     return enter
                         .append('g')
-                        .attr('class', (d) => d.end ? 'interval' : 'instant')
+                        .attr('class', (d) => d.end || d.start === d.end ? 'datapoint interval' : 'datapoint instant')
                         .each(function(d) {
                             const node = select(this);
-                            if (d.end) {
+                            if (d.end || d.start === d.end) {
                                 // Add rectangle for each interval data point
                                 node
                                     .append('rect')
@@ -325,7 +436,7 @@ function updateNodes(chart: Selection<HTMLDivElement, unknown, null, undefined>,
                                     .style('font', '10px sans-serif')
                                     .attr('x', 4)
                                     .attr('y', 12)
-                                    .text((d: Data) => d.name);
+                                    .text((d: Data) => options.text ? options.text(d) : d.name);
                             } else {
                                 // Add circle for each instant data point
                                 node
@@ -338,12 +449,12 @@ function updateNodes(chart: Selection<HTMLDivElement, unknown, null, undefined>,
                                     .style('font', '10px sans-serif')
                                     .attr('x', 16)
                                     .attr('y', 12)
-                                    .text((d: Data) => d.name);
+                                    .text((d: Data) => options.text ? options.text(d) : d.name);
                             }
                         });
                 },
                 function update(update) {
-                    updateNodeInternal(chart, timelineXScale, options);
+                    updateNodeInternal(chart, timelineXScale, groupMap, options);
                     return update;
                 },
                 function exit(exit) {
@@ -353,22 +464,20 @@ function updateNodes(chart: Selection<HTMLDivElement, unknown, null, undefined>,
     }
 }
 
-function updateNodeInternal(chart: Selection<HTMLDivElement, unknown, null, undefined>, timelineXScale: ScaleTime<number, number>, options: Options): void {
-    const groups = Array.from(new Set(options.data.map((d: Data) => d.group)));
-    const rowHeight = 20;
-    for (const group of groups) {
-        const groupId = `#group-${group}-svg`;
+function updateNodeInternal(chart: Selection<HTMLDivElement, unknown, null, undefined>, timelineXScale: ScaleTime<number, number>, groupMap: InternMap<string, Data[]>, options: Options): void {
+    for (const group of groupMap.keys()) {
+        const groupId = `#${getGroupSvgId(group)}`;
 
         const svg = chart
             .select(groupId);
 
         const svgGroups = chart
             .select(groupId)
-            .selectAll<SVGGElement, Data>('g');
+            .selectAll<SVGGElement, Data>('g.datapoint');
 
         // Set x,y for each data point
         svgGroups
-            .attr('transform', (d: Data, i: number) => `translate(${timelineXScale(new Date(d.start).getTime())}, ${i * rowHeight})`);
+            .attr('transform', (d: Data, i: number) => `translate(${timelineXScale(new Date(d.start).getTime())}, ${(d.track ?? i) * options.rowHeight})`);
 
         // Set width and color for each interval data point
         const intervalNodes = svg
@@ -376,7 +485,7 @@ function updateNodeInternal(chart: Selection<HTMLDivElement, unknown, null, unde
         intervalNodes
             .selectAll('rect')
             .attr('width', (d: Data) => timelineXScale(new Date(d.end)) - timelineXScale(new Date(d.start)))
-            .style('fill', (d: Data) => options.nodeColor ? options.nodeColor(d) : colors(d.start))
+            .style('fill', (d: Data) => options.nodeColor ? options.nodeColor(d) : colors(d.start.toString()))
             .style('fill-opacity', (d: Data) => options.highlight && options.highlight(d) !== undefined ? options.highlight(d) ? 1 : 0.2 : 1)
             .style('stroke', (d: Data) => options.highlight && options.highlight(d) !== undefined ? options.highlight(d) ? 'none' : 'black' : 'none');
 
@@ -385,7 +494,7 @@ function updateNodeInternal(chart: Selection<HTMLDivElement, unknown, null, unde
             .selectAll('.instant');
         instantNodes
             .selectAll('circle')
-            .style('fill', (d: Data) => options.nodeColor ? options.nodeColor(d) : colors(d.start))
+            .style('fill', (d: Data) => options.nodeColor ? options.nodeColor(d) : colors(d.start.toString()))
             .style('fill-opacity', (d: Data) => options.highlight && options.highlight(d) !== undefined? options.highlight(d) ? 1 : 0.5 : 1)
             .style('stroke', (d: Data) => options.highlight && options.highlight(d) !== undefined? options.highlight(d) ? 'none' : 'black' : 'none');
 
@@ -397,15 +506,14 @@ function updateNodeInternal(chart: Selection<HTMLDivElement, unknown, null, unde
             .selectAll('text')
             .style('fill', (d: Data) => options.textColor ? options.textColor(d) : 'black');
 
-        updateTooltips(svgGroups, options);
-        updateClickHandler(svgGroups, options, chart, timelineXScale);
+        updateTooltips(svgGroups, groupMap, options);
+        updateClickHandler(svgGroups, options, chart, timelineXScale, groupMap);
     }
 }
 
-function updateTooltips(svgGroups: Selection<SVGGElement, Data, BaseType, unknown>, options: Options): void {
-    const groups = Array.from(new Set(options.data.map((d: Data) => d.group)));
-    const brushHeight = options.xBrush ? options.brushHeight : 0;
-    const groupHeight = (options.height - brushHeight) / (groups.length || 1);
+function updateTooltips(svgGroups: Selection<SVGGElement, Data, BaseType, unknown>, groupMap: InternMap<string, Data[]>, options: Options): void {
+    const brushHeight = options.xBrush ? options.brushHeight + (options.xAxis ? 20 : 0) : 0;
+    const groupHeight = (options.height - brushHeight - (options.xAxis ? 20 : 0)) / (groupMap.size || 1);
 
     if (options.showTooltips) {
         const tooltip = select('#timeline-tooltip');
@@ -432,12 +540,12 @@ function updateTooltips(svgGroups: Selection<SVGGElement, Data, BaseType, unknow
     }
 }
 
-function updateClickHandler(svgGroups: Selection<SVGGElement, Data, BaseType, unknown>, options: Options, foo: any, bar: any): void {
+function updateClickHandler(svgGroups: Selection<SVGGElement, Data, BaseType, unknown>, options: Options, chart: Selection<HTMLDivElement, unknown, null, undefined>, timelineXScale: ScaleTime<number, number>, groupMap: InternMap<string, Data[]>): void {
     if (options.click) {
         svgGroups.attr('cursor', 'pointer');
         svgGroups.on('click', (_, d: Data) => {
             options.click(d);
-            updateNodeInternal(foo, bar, options);
+            updateNodeInternal(chart, timelineXScale, groupMap, options);
         });
     } else {
         svgGroups.attr('cursor', 'auto');
@@ -473,15 +581,13 @@ function updateAxis(chart: Selection<HTMLDivElement, unknown, null, undefined>, 
     axisSvg.call(xAxis);
 }
 
-function updateBrush(chart: Selection<HTMLDivElement, unknown, null, undefined>, brushXScale: ScaleTime<number, number>, timelineXScale: ScaleTime<number, number>, options: Options): void {
+function updateBrush(chart: Selection<HTMLDivElement, unknown, null, undefined>, brushXScale: ScaleTime<number, number>, timelineXScale: ScaleTime<number, number>, groupMap: InternMap<string, Data[]>, options: Options): void {
     if (!options.xBrush) {
         return;
     }
 
     const brushHeight = options.brushHeight;
-    const axisHeight = options.xAxis ? 20 : 0;
-    const containerHeight = brushHeight - axisHeight;
-    const rowHeight = Math.min(containerHeight / options.data.length, 20);
+    const rowHeight = Math.min(brushHeight / options.data.length, 20);
     const nodeHeight = rowHeight * 0.8;
 
     // Create brush container
@@ -489,7 +595,7 @@ function updateBrush(chart: Selection<HTMLDivElement, unknown, null, undefined>,
         .append('div')
         .attr('id', 'brush-container')
         .style('width', '100%')
-        .style('height', `${containerHeight}px`);
+        .style('height', `${brushHeight}px`);
 
     // Create brush svg
     const brushSvg = brushContainer
@@ -500,7 +606,7 @@ function updateBrush(chart: Selection<HTMLDivElement, unknown, null, undefined>,
 
     const brushGroups = brushSvg
         .selectAll('g')
-        .data(options.data, (d: Data) => d.start);
+        .data(options.data, (d: Data) => d.start.toString());
 
     brushGroups.join(
         function enter(enter) {
@@ -535,13 +641,14 @@ function updateBrush(chart: Selection<HTMLDivElement, unknown, null, undefined>,
                     : event.selection.map(brushXScale.invert as any);
 
                 timelineXScale.domain(domain);
-                updateNodeInternal(chart, timelineXScale, options);
+                updateGridlines(chart, timelineXScale, groupMap, options);
+                updateNodeInternal(chart, timelineXScale, groupMap, options);
                 updateAxis(chart, timelineXScale, options);
             };
 
             // Create brush
             const brush = brushX()
-                .extent([[16, 0], [brushXScale.range()[1], containerHeight]])
+                .extent([[16, 0], [brushXScale.range()[1], brushHeight]])
                 .on('brush', handleBrush)
                 .on('end', handleBrush);
 
@@ -586,12 +693,12 @@ function updateBrush(chart: Selection<HTMLDivElement, unknown, null, undefined>,
             svgGroups
                 .selectAll('rect')
                 .attr('width', (d: Data) => brushXScale(new Date(d.end)) - brushXScale(new Date(d.start)))
-                .style('fill', (d: Data) => options.nodeColor ? options.nodeColor(d) : colors(d.start));
+                .style('fill', (d: Data) => options.nodeColor ? options.nodeColor(d) : colors(d.start.toString()));
 
             // Set color for each instant data point
             svgGroups
                 .selectAll('circle')
-                .style('fill', (d: Data) => options.nodeColor ? options.nodeColor(d) : colors(d.start));
+                .style('fill', (d: Data) => options.nodeColor ? options.nodeColor(d) : colors(d.start.toString()));
 
             return undefined;
         },
