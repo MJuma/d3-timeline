@@ -13,8 +13,8 @@
     <script src="./data.js"></script>
 
     <!-- Timeline -->
-    <script src="https://unpkg.com/@mhjuma/timeline/dist/timeline.umd.js"></script>
-    <!-- <script src="../dist/timeline.umd.js"></script> -->
+    <!-- <script src="https://unpkg.com/@mhjuma/timeline/dist/timeline.umd.js"></script> -->
+    <script src="../dist/timeline.umd.js"></script>
 </head>
 
 <body>
@@ -29,11 +29,12 @@
     <input id="gridColor" placeholder="grid color" />
 
     <button onclick="updateTimeline()">Update</button>
+    <button onclick="toggleData()">Toggle Data</button>
 </fieldset>
 
 <script>
     // Get data
-    const data = [
+    let data = [
         ...alphabetGroup,
         ...dwarfsGroup,
         ...planetsGroup,
@@ -52,7 +53,7 @@
             const result = selectedNode === undefined ? undefined : d.name === selectedNode;
             return result;
         })
-        .click((node) => {
+        .click((event, node) => {
             if (selectedNode && node.name === selectedNode) {
                 selectedNode = undefined;
             } else {
@@ -116,6 +117,43 @@
             console.log('Updating grid color');
             chart.gridColor(gridColor);
         }
+    }
+
+    let groups = 3;
+    function toggleData() {
+        switch (groups) {
+            case 0:
+                console.log('1');
+                data = [
+                    ...alphabetGroup,
+                ];
+                groups = 1;
+                break;
+            case 1:
+                console.log('2');
+                data = [
+                    ...alphabetGroup,
+                    ...dwarfsGroup,
+                ];
+                groups = 2;
+                break;
+            case 2:
+                console.log('3');
+                data = [
+                    ...alphabetGroup,
+                    ...dwarfsGroup,
+                    ...planetsGroup,
+                ];
+                groups = 3;
+                break;
+            case 3:
+                console.log('0');
+                data = [];
+                groups = 0;
+                break;
+        }
+
+        chart.data(data);
     }
 </script>
 </body>
