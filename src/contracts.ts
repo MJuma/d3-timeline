@@ -33,6 +33,7 @@ export interface Options<T extends Data = Data> {
     outerWidth: number;
     outerHeight: number;
     brushHeight: number;
+    axisHeight: number;
     width: number;
     height: number;
     margin: Margin;
@@ -53,7 +54,7 @@ export interface Options<T extends Data = Data> {
 
 export type Color<T extends Data> = (data: T) => string;
 export type Text<T extends Data> = (data: T) => string;
-export type Click<T extends Data> = (data: T) => void;
+export type Click<T extends Data> = (event: PointerEvent, data: T) => void;
 export type Highlight<T extends Data> = (data: T) => boolean;
 export type Tooltips<T extends Data> = (domElement: SVGGElement, visible: boolean, data: T) => void;
 export type Margin = { top: number, right: number, bottom: number, left: number };
