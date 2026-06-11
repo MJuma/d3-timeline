@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+
+### Features
+
+- Add performance-timeline overlay: `perfData` / `perfHeight` fluent setters, a `perfTimeline` flag on `Data`, `perfTimelineData` / `perfTimelineHeight` options, and `PerfTimelineEntry` / `PerfTimelineDataById` types.
+
 ## 1.0.1
 
 ### Features

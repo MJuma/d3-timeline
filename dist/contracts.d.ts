@@ -1,6 +1,4 @@
-
-import type { Selection, } from 'd3-selection';
-
+import type { Selection } from 'd3-selection';
 export interface PerfTimelineEntry {
     start: number;
     end: number;
@@ -13,12 +11,9 @@ export interface PerfTimelineEntry {
     changeDetectionCount: number;
     browserRenderCount: number;
 }
-
-export type PerfTimelineDataById = Record<string, PerfTimelineEntry[]>;
-
-export type Foo<S, D> = <T extends S | undefined = undefined>(someInput?: T) => T extends undefined ? S : D;
-export type GetterSetter<Getter, Setter> = <Param extends Setter | undefined = undefined>(param?: Param) => Param extends undefined ? Setter : Getter;
-
+export declare type PerfTimelineDataById = Record<string, PerfTimelineEntry[]>;
+export declare type Foo<S, D> = <T extends S | undefined = undefined>(someInput?: T) => T extends undefined ? S : D;
+export declare type GetterSetter<Getter, Setter> = <Param extends Setter | undefined = undefined>(param?: Param) => Param extends undefined ? Setter : Getter;
 export interface Timeline<T extends Data> {
     width: GetterSetter<Timeline<T>, number>;
     height: GetterSetter<Timeline<T>, number>;
@@ -38,7 +33,6 @@ export interface Timeline<T extends Data> {
     perfHeight: GetterSetter<Timeline<T>, number>;
     render(domElement: HTMLElement): Timeline<T>;
 }
-
 export interface Data {
     name: string;
     start: Date | string;
@@ -47,7 +41,6 @@ export interface Data {
     track?: number;
     perfTimeline?: boolean;
 }
-
 export interface Options<T extends Data = Data> {
     outerWidth: number;
     outerHeight: number;
@@ -72,15 +65,18 @@ export interface Options<T extends Data = Data> {
     click?: Click<T>;
     highlight?: Highlight<T>;
 }
-
-export type Color<T extends Data> = (data: T) => string;
-export type Text<T extends Data> = (data: T) => string;
-export type Click<T extends Data> = (event: PointerEvent, data: T) => void;
-export type Highlight<T extends Data> = (data: T) => boolean;
-export type Tooltips<T extends Data> = (domElement: SVGGElement, visible: boolean, data: T) => void;
-export type Margin = { top: number; right: number; bottom: number; left: number };
-
-export type ChartContainer = {
+export declare type Color<T extends Data> = (data: T) => string;
+export declare type Text<T extends Data> = (data: T) => string;
+export declare type Click<T extends Data> = (event: PointerEvent, data: T) => void;
+export declare type Highlight<T extends Data> = (data: T) => boolean;
+export declare type Tooltips<T extends Data> = (domElement: SVGGElement, visible: boolean, data: T) => void;
+export declare type Margin = {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+};
+export declare type ChartContainer = {
     outerContainer: Selection<HTMLDivElement, unknown, null, undefined>;
     container: Selection<HTMLDivElement, unknown, null, undefined>;
 };
