@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1
+
+### Bug Fixes
+
+- Clamp the x-scale width (`Math.max(width, 64)`) so a momentarily tiny or zero container can't invert the scale range and emit a negative-width rect.
+
 ## 1.1.0
 
 ### Features

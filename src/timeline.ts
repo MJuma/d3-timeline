@@ -341,7 +341,10 @@ function updateChartContainer(chartContainer: ChartContainer, options: Options):
 
 function createXScale(options: Options): ScaleTime<number, number> {
     const domainExtent = extent([...options.data.map(d => new Date(d.start)), ...options.data.map(d => new Date(d.end ?? ''))]);
-    let rangeEnd = options.width - 16;
+    // Clamp the width so a momentarily tiny/zero container (e.g. before layout settles) can't produce a
+    // negative range end, which would invert the scale and emit a negative-width rect.
+    const safeWidth = Math.max(options.width, 64);
+    let rangeEnd = safeWidth - 16;
     const rangeEndMin = rangeEnd / 2; // ensure large text widths don't make the width too small
     const scale = scaleTime()
         .domain(domainExtent as any)
@@ -354,9 +357,9 @@ function createXScale(options: Options): ScaleTime<number, number> {
             if (x >= textEnd)
                 textEnd = x;
         }
-        if (textEnd <= options.width - 16)
+        if (textEnd <= safeWidth - 16)
             break;
-        rangeEnd -= textEnd - (options.width - 16);
+        rangeEnd -= textEnd - (safeWidth - 16);
         if (rangeEnd < rangeEndMin)
             rangeEnd = rangeEndMin;
         scale.range([16, rangeEnd]);
@@ -563,7 +566,7 @@ function updatePerfBoxChartBars(chart: Selection<HTMLDivElement, unknown, null, 
             .attr('width', (d: any) => timelineXScale(d.end + new Date(firstEvent?.start ?? '').getTime()) - timelineXScale(d.start + new Date(firstEvent?.start ?? '').getTime()))
             .attr('height', (d: any) => entryHeight(d))
             // this will need to be updated when we distinguish between the different task types
-            .style('fill', (d: any) => 'orange')
+            .style('fill', () => 'orange')
             .style('fill-opacity', (d: any) => options.highlight && options.highlight(d) !== undefined ? options.highlight(d) ? 1 : 0.2 : 1)
             .style('stroke', (d: any) => options.highlight && options.highlight(d) !== undefined ? options.highlight(d) ? 'none' : 'black' : 'none');
     }
