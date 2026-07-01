@@ -1,0 +1,76 @@
+name: Publish
+
+# Publishes @mhjuma/timeline to npm whenever the version in package.json is bumped on master.
+# Authentication uses npm trusted publishing (OIDC) — no NPM_TOKEN secret. Provenance attestations
+# are generated automatically. A one-time setup on npmjs.com is required: package Settings →
+# Trusted Publisher → GitHub Actions → repo MJuma/d3-timeline, workflow file publish.yml.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write # push the release tag
+  id-token: write # required for npm trusted publishing (OIDC)
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing (OIDC) requires npm >= 11.5.1; Node 22 ships an older npm.
+      - name: Upgrade npm
+        run: npm install --global npm@latest
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Skip if this version is already published
+        id: version_check
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "${NAME}@${VERSION}" version > /dev/null 2>&1; then
+            echo "::notice::${NAME}@${VERSION} is already published — skipping."
+            echo "skip_publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip_publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Trusted publishing: the npm CLI detects the GitHub Actions OIDC environment and
+      # authenticates automatically; provenance is attached without the --provenance flag.
+      - name: Publish to npm
+        if: steps.version_check.outputs.skip_publish != 'true'
+        run: npm publish
+
+      - name: Tag the release
+        if: steps.version_check.outputs.skip_publish != 'true'
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v${VERSION}"
+          if git ls-remote --tags origin "refs/tags/${TAG}" | grep -q "${TAG}"; then
+            echo "::notice::Tag ${TAG} already exists — skipping."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag "${TAG}"
+            git push origin "${TAG}"
+          fi
