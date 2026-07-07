@@ -1,16 +1,3 @@
-interface PerfTimelineEntry {
-    start: number;
-    end: number;
-    taskTime: number;
-    visualTime: number;
-    changeDetectionTime: number;
-    browserRenderTime: number;
-    taskCount: number;
-    visualCount: number;
-    changeDetectionCount: number;
-    browserRenderCount: number;
-}
-declare type PerfTimelineDataById = Record<string, PerfTimelineEntry[]>;
 declare type GetterSetter<Getter, Setter> = <Param extends Setter | undefined = undefined>(param?: Param) => Param extends undefined ? Setter : Getter;
 interface Timeline<T extends Data> {
     width: GetterSetter<Timeline<T>, number>;
@@ -27,8 +14,6 @@ interface Timeline<T extends Data> {
     click: (click: Click<T>) => Timeline<T>;
     highlight: (click: Highlight<T>) => Timeline<T>;
     data: GetterSetter<Timeline<T>, T[]>;
-    perfData: GetterSetter<Timeline<Data>, PerfTimelineDataById>;
-    perfHeight: GetterSetter<Timeline<T>, number>;
     render(domElement: HTMLElement): Timeline<T>;
 }
 interface Data {
@@ -37,7 +22,6 @@ interface Data {
     end?: Date | string;
     group?: string;
     track?: number;
-    perfTimeline?: boolean;
 }
 declare type Color<T extends Data> = (data: T) => string;
 declare type Text<T extends Data> = (data: T) => string;
@@ -51,6 +35,6 @@ declare type Margin = {
     left: number;
 };
 
-declare function timeline(): any;
+declare function timeline<T extends Data = Data>(): Timeline<T>;
 
-export { Click, Color, Data, GetterSetter, Highlight, Margin, PerfTimelineDataById, PerfTimelineEntry, Text, Timeline, Tooltips, timeline };
+export { Click, Color, Data, GetterSetter, Highlight, Margin, Text, Timeline, Tooltips, timeline };

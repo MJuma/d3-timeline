@@ -1,4 +1,4 @@
-/*! @mhjuma/timeline v1.1.1 2026-06-18 */
+/*! @mhjuma/timeline v1.1.2 2026-07-07 */
 'use strict';
 function identity$3(x) {
   return x;
@@ -3940,46 +3940,47 @@ function nice(domain, interval) {
   return domain;
 }
 
-const t0 = new Date, t1 = new Date;
+var t0 = new Date,
+    t1 = new Date;
 
-function timeInterval(floori, offseti, count, field) {
+function newInterval(floori, offseti, count, field) {
 
   function interval(date) {
     return floori(date = arguments.length === 0 ? new Date : new Date(+date)), date;
   }
 
-  interval.floor = (date) => {
+  interval.floor = function(date) {
     return floori(date = new Date(+date)), date;
   };
 
-  interval.ceil = (date) => {
+  interval.ceil = function(date) {
     return floori(date = new Date(date - 1)), offseti(date, 1), floori(date), date;
   };
 
-  interval.round = (date) => {
-    const d0 = interval(date), d1 = interval.ceil(date);
+  interval.round = function(date) {
+    var d0 = interval(date),
+        d1 = interval.ceil(date);
     return date - d0 < d1 - date ? d0 : d1;
   };
 
-  interval.offset = (date, step) => {
+  interval.offset = function(date, step) {
     return offseti(date = new Date(+date), step == null ? 1 : Math.floor(step)), date;
   };
 
-  interval.range = (start, stop, step) => {
-    const range = [];
+  interval.range = function(start, stop, step) {
+    var range = [], previous;
     start = interval.ceil(start);
     step = step == null ? 1 : Math.floor(step);
     if (!(start < stop) || !(step > 0)) return range; // also handles Invalid Date
-    let previous;
     do range.push(previous = new Date(+start)), offseti(start, step), floori(start);
     while (previous < start && start < stop);
     return range;
   };
 
-  interval.filter = (test) => {
-    return timeInterval((date) => {
+  interval.filter = function(test) {
+    return newInterval(function(date) {
       if (date >= date) while (floori(date), !test(date)) date.setTime(date - 1);
-    }, (date, step) => {
+    }, function(date, step) {
       if (date >= date) {
         if (step < 0) while (++step <= 0) {
           while (offseti(date, -1), !test(date)) {} // eslint-disable-line no-empty
@@ -3991,47 +3992,48 @@ function timeInterval(floori, offseti, count, field) {
   };
 
   if (count) {
-    interval.count = (start, end) => {
+    interval.count = function(start, end) {
       t0.setTime(+start), t1.setTime(+end);
       floori(t0), floori(t1);
       return Math.floor(count(t0, t1));
     };
 
-    interval.every = (step) => {
+    interval.every = function(step) {
       step = Math.floor(step);
       return !isFinite(step) || !(step > 0) ? null
           : !(step > 1) ? interval
           : interval.filter(field
-              ? (d) => field(d) % step === 0
-              : (d) => interval.count(0, d) % step === 0);
+              ? function(d) { return field(d) % step === 0; }
+              : function(d) { return interval.count(0, d) % step === 0; });
     };
   }
 
   return interval;
 }
 
-const millisecond = timeInterval(() => {
+var millisecond = newInterval(function() {
   // noop
-}, (date, step) => {
+}, function(date, step) {
   date.setTime(+date + step);
-}, (start, end) => {
+}, function(start, end) {
   return end - start;
 });
 
 // An optimized implementation for this simple case.
-millisecond.every = (k) => {
+millisecond.every = function(k) {
   k = Math.floor(k);
   if (!isFinite(k) || !(k > 0)) return null;
   if (!(k > 1)) return millisecond;
-  return timeInterval((date) => {
+  return newInterval(function(date) {
     date.setTime(Math.floor(date / k) * k);
-  }, (date, step) => {
+  }, function(date, step) {
     date.setTime(+date + step * k);
-  }, (start, end) => {
+  }, function(start, end) {
     return (end - start) / k;
   });
 };
 
+var millisecond$1 = millisecond;
 millisecond.range;
 
 const durationSecond = 1000;
@@ -4042,144 +4044,178 @@ const durationWeek = durationDay * 7;
 const durationMonth = durationDay * 30;
 const durationYear = durationDay * 365;
 
-const second = timeInterval((date) => {
+var second = newInterval(function(date) {
   date.setTime(date - date.getMilliseconds());
-}, (date, step) => {
+}, function(date, step) {
   date.setTime(+date + step * durationSecond);
-}, (start, end) => {
+}, function(start, end) {
   return (end - start) / durationSecond;
-}, (date) => {
+}, function(date) {
   return date.getUTCSeconds();
 });
 
+var utcSecond = second;
 second.range;
 
-const timeMinute = timeInterval((date) => {
+var minute = newInterval(function(date) {
   date.setTime(date - date.getMilliseconds() - date.getSeconds() * durationSecond);
-}, (date, step) => {
+}, function(date, step) {
   date.setTime(+date + step * durationMinute);
-}, (start, end) => {
+}, function(start, end) {
   return (end - start) / durationMinute;
-}, (date) => {
+}, function(date) {
   return date.getMinutes();
 });
 
-timeMinute.range;
+var timeMinute = minute;
+minute.range;
 
-const utcMinute = timeInterval((date) => {
-  date.setUTCSeconds(0, 0);
-}, (date, step) => {
-  date.setTime(+date + step * durationMinute);
-}, (start, end) => {
-  return (end - start) / durationMinute;
-}, (date) => {
-  return date.getUTCMinutes();
-});
-
-utcMinute.range;
-
-const timeHour = timeInterval((date) => {
+var hour = newInterval(function(date) {
   date.setTime(date - date.getMilliseconds() - date.getSeconds() * durationSecond - date.getMinutes() * durationMinute);
-}, (date, step) => {
+}, function(date, step) {
   date.setTime(+date + step * durationHour);
-}, (start, end) => {
+}, function(start, end) {
   return (end - start) / durationHour;
-}, (date) => {
+}, function(date) {
   return date.getHours();
 });
 
-timeHour.range;
+var timeHour = hour;
+hour.range;
 
-const utcHour = timeInterval((date) => {
-  date.setUTCMinutes(0, 0, 0);
-}, (date, step) => {
-  date.setTime(+date + step * durationHour);
-}, (start, end) => {
-  return (end - start) / durationHour;
-}, (date) => {
-  return date.getUTCHours();
-});
-
-utcHour.range;
-
-const timeDay = timeInterval(
+var day = newInterval(
   date => date.setHours(0, 0, 0, 0),
   (date, step) => date.setDate(date.getDate() + step),
   (start, end) => (end - start - (end.getTimezoneOffset() - start.getTimezoneOffset()) * durationMinute) / durationDay,
   date => date.getDate() - 1
 );
 
-timeDay.range;
+var timeDay = day;
+day.range;
 
-const utcDay = timeInterval((date) => {
-  date.setUTCHours(0, 0, 0, 0);
-}, (date, step) => {
-  date.setUTCDate(date.getUTCDate() + step);
-}, (start, end) => {
-  return (end - start) / durationDay;
-}, (date) => {
-  return date.getUTCDate() - 1;
-});
-
-utcDay.range;
-
-const unixDay = timeInterval((date) => {
-  date.setUTCHours(0, 0, 0, 0);
-}, (date, step) => {
-  date.setUTCDate(date.getUTCDate() + step);
-}, (start, end) => {
-  return (end - start) / durationDay;
-}, (date) => {
-  return Math.floor(date / durationDay);
-});
-
-unixDay.range;
-
-function timeWeekday(i) {
-  return timeInterval((date) => {
+function weekday(i) {
+  return newInterval(function(date) {
     date.setDate(date.getDate() - (date.getDay() + 7 - i) % 7);
     date.setHours(0, 0, 0, 0);
-  }, (date, step) => {
+  }, function(date, step) {
     date.setDate(date.getDate() + step * 7);
-  }, (start, end) => {
+  }, function(start, end) {
     return (end - start - (end.getTimezoneOffset() - start.getTimezoneOffset()) * durationMinute) / durationWeek;
   });
 }
 
-const timeSunday = timeWeekday(0);
-const timeMonday = timeWeekday(1);
-const timeTuesday = timeWeekday(2);
-const timeWednesday = timeWeekday(3);
-const timeThursday = timeWeekday(4);
-const timeFriday = timeWeekday(5);
-const timeSaturday = timeWeekday(6);
+var sunday = weekday(0);
+var monday = weekday(1);
+var tuesday = weekday(2);
+var wednesday = weekday(3);
+var thursday = weekday(4);
+var friday = weekday(5);
+var saturday = weekday(6);
 
-timeSunday.range;
-timeMonday.range;
-timeTuesday.range;
-timeWednesday.range;
-timeThursday.range;
-timeFriday.range;
-timeSaturday.range;
+sunday.range;
+monday.range;
+tuesday.range;
+wednesday.range;
+thursday.range;
+friday.range;
+saturday.range;
+
+var month = newInterval(function(date) {
+  date.setDate(1);
+  date.setHours(0, 0, 0, 0);
+}, function(date, step) {
+  date.setMonth(date.getMonth() + step);
+}, function(start, end) {
+  return end.getMonth() - start.getMonth() + (end.getFullYear() - start.getFullYear()) * 12;
+}, function(date) {
+  return date.getMonth();
+});
+
+var timeMonth = month;
+month.range;
+
+var year = newInterval(function(date) {
+  date.setMonth(0, 1);
+  date.setHours(0, 0, 0, 0);
+}, function(date, step) {
+  date.setFullYear(date.getFullYear() + step);
+}, function(start, end) {
+  return end.getFullYear() - start.getFullYear();
+}, function(date) {
+  return date.getFullYear();
+});
+
+// An optimized implementation for this simple case.
+year.every = function(k) {
+  return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : newInterval(function(date) {
+    date.setFullYear(Math.floor(date.getFullYear() / k) * k);
+    date.setMonth(0, 1);
+    date.setHours(0, 0, 0, 0);
+  }, function(date, step) {
+    date.setFullYear(date.getFullYear() + step * k);
+  });
+};
+
+var timeYear = year;
+year.range;
+
+var utcMinute = newInterval(function(date) {
+  date.setUTCSeconds(0, 0);
+}, function(date, step) {
+  date.setTime(+date + step * durationMinute);
+}, function(start, end) {
+  return (end - start) / durationMinute;
+}, function(date) {
+  return date.getUTCMinutes();
+});
+
+var utcMinute$1 = utcMinute;
+utcMinute.range;
+
+var utcHour = newInterval(function(date) {
+  date.setUTCMinutes(0, 0, 0);
+}, function(date, step) {
+  date.setTime(+date + step * durationHour);
+}, function(start, end) {
+  return (end - start) / durationHour;
+}, function(date) {
+  return date.getUTCHours();
+});
+
+var utcHour$1 = utcHour;
+utcHour.range;
+
+var utcDay = newInterval(function(date) {
+  date.setUTCHours(0, 0, 0, 0);
+}, function(date, step) {
+  date.setUTCDate(date.getUTCDate() + step);
+}, function(start, end) {
+  return (end - start) / durationDay;
+}, function(date) {
+  return date.getUTCDate() - 1;
+});
+
+var utcDay$1 = utcDay;
+utcDay.range;
 
 function utcWeekday(i) {
-  return timeInterval((date) => {
+  return newInterval(function(date) {
     date.setUTCDate(date.getUTCDate() - (date.getUTCDay() + 7 - i) % 7);
     date.setUTCHours(0, 0, 0, 0);
-  }, (date, step) => {
+  }, function(date, step) {
     date.setUTCDate(date.getUTCDate() + step * 7);
-  }, (start, end) => {
+  }, function(start, end) {
     return (end - start) / durationWeek;
   });
 }
 
-const utcSunday = utcWeekday(0);
-const utcMonday = utcWeekday(1);
-const utcTuesday = utcWeekday(2);
-const utcWednesday = utcWeekday(3);
-const utcThursday = utcWeekday(4);
-const utcFriday = utcWeekday(5);
-const utcSaturday = utcWeekday(6);
+var utcSunday = utcWeekday(0);
+var utcMonday = utcWeekday(1);
+var utcTuesday = utcWeekday(2);
+var utcWednesday = utcWeekday(3);
+var utcThursday = utcWeekday(4);
+var utcFriday = utcWeekday(5);
+var utcSaturday = utcWeekday(6);
 
 utcSunday.range;
 utcMonday.range;
@@ -4189,87 +4225,52 @@ utcThursday.range;
 utcFriday.range;
 utcSaturday.range;
 
-const timeMonth = timeInterval((date) => {
-  date.setDate(1);
-  date.setHours(0, 0, 0, 0);
-}, (date, step) => {
-  date.setMonth(date.getMonth() + step);
-}, (start, end) => {
-  return end.getMonth() - start.getMonth() + (end.getFullYear() - start.getFullYear()) * 12;
-}, (date) => {
-  return date.getMonth();
-});
-
-timeMonth.range;
-
-const utcMonth = timeInterval((date) => {
+var utcMonth = newInterval(function(date) {
   date.setUTCDate(1);
   date.setUTCHours(0, 0, 0, 0);
-}, (date, step) => {
+}, function(date, step) {
   date.setUTCMonth(date.getUTCMonth() + step);
-}, (start, end) => {
+}, function(start, end) {
   return end.getUTCMonth() - start.getUTCMonth() + (end.getUTCFullYear() - start.getUTCFullYear()) * 12;
-}, (date) => {
+}, function(date) {
   return date.getUTCMonth();
 });
 
+var utcMonth$1 = utcMonth;
 utcMonth.range;
 
-const timeYear = timeInterval((date) => {
-  date.setMonth(0, 1);
-  date.setHours(0, 0, 0, 0);
-}, (date, step) => {
-  date.setFullYear(date.getFullYear() + step);
-}, (start, end) => {
-  return end.getFullYear() - start.getFullYear();
-}, (date) => {
-  return date.getFullYear();
-});
-
-// An optimized implementation for this simple case.
-timeYear.every = (k) => {
-  return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : timeInterval((date) => {
-    date.setFullYear(Math.floor(date.getFullYear() / k) * k);
-    date.setMonth(0, 1);
-    date.setHours(0, 0, 0, 0);
-  }, (date, step) => {
-    date.setFullYear(date.getFullYear() + step * k);
-  });
-};
-
-timeYear.range;
-
-const utcYear = timeInterval((date) => {
+var utcYear = newInterval(function(date) {
   date.setUTCMonth(0, 1);
   date.setUTCHours(0, 0, 0, 0);
-}, (date, step) => {
+}, function(date, step) {
   date.setUTCFullYear(date.getUTCFullYear() + step);
-}, (start, end) => {
+}, function(start, end) {
   return end.getUTCFullYear() - start.getUTCFullYear();
-}, (date) => {
+}, function(date) {
   return date.getUTCFullYear();
 });
 
 // An optimized implementation for this simple case.
-utcYear.every = (k) => {
-  return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : timeInterval((date) => {
+utcYear.every = function(k) {
+  return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : newInterval(function(date) {
     date.setUTCFullYear(Math.floor(date.getUTCFullYear() / k) * k);
     date.setUTCMonth(0, 1);
     date.setUTCHours(0, 0, 0, 0);
-  }, (date, step) => {
+  }, function(date, step) {
     date.setUTCFullYear(date.getUTCFullYear() + step * k);
   });
 };
 
+var utcYear$1 = utcYear;
 utcYear.range;
 
 function ticker(year, month, week, day, hour, minute) {
 
   const tickIntervals = [
-    [second,  1,      durationSecond],
-    [second,  5,  5 * durationSecond],
-    [second, 15, 15 * durationSecond],
-    [second, 30, 30 * durationSecond],
+    [utcSecond,  1,      durationSecond],
+    [utcSecond,  5,  5 * durationSecond],
+    [utcSecond, 15, 15 * durationSecond],
+    [utcSecond, 30, 30 * durationSecond],
     [minute,  1,      durationMinute],
     [minute,  5,  5 * durationMinute],
     [minute, 15, 15 * durationMinute],
@@ -4298,7 +4299,7 @@ function ticker(year, month, week, day, hour, minute) {
     const target = Math.abs(stop - start) / count;
     const i = bisector(([,, step]) => step).right(tickIntervals, target);
     if (i === tickIntervals.length) return year.every(tickStep(start / durationYear, stop / durationYear, count));
-    if (i === 0) return millisecond.every(Math.max(tickStep(start, stop, count), 1));
+    if (i === 0) return millisecond$1.every(Math.max(tickStep(start, stop, count), 1));
     const [t, step] = tickIntervals[target / tickIntervals[i - 1][2] < tickIntervals[i][2] / target ? i - 1 : i];
     return t.every(step);
   }
@@ -4306,8 +4307,8 @@ function ticker(year, month, week, day, hour, minute) {
   return [ticks, tickInterval];
 }
 
-ticker(utcYear, utcMonth, utcSunday, unixDay, utcHour, utcMinute);
-const [timeTicks, timeTickInterval] = ticker(timeYear, timeMonth, timeSunday, timeDay, timeHour, timeMinute);
+ticker(utcYear$1, utcMonth$1, utcSunday, utcDay$1, utcHour$1, utcMinute$1);
+const [timeTicks, timeTickInterval] = ticker(timeYear, timeMonth, sunday, timeDay, timeHour, timeMinute);
 
 function localDate(d) {
   if (0 <= d.y && d.y < 100) {
@@ -4520,13 +4521,13 @@ function formatLocale(locale) {
         if ("Z" in d) {
           week = utcDate(newDate(d.y, 0, 1)), day = week.getUTCDay();
           week = day > 4 || day === 0 ? utcMonday.ceil(week) : utcMonday(week);
-          week = utcDay.offset(week, (d.V - 1) * 7);
+          week = utcDay$1.offset(week, (d.V - 1) * 7);
           d.y = week.getUTCFullYear();
           d.m = week.getUTCMonth();
           d.d = week.getUTCDate() + (d.w + 6) % 7;
         } else {
           week = localDate(newDate(d.y, 0, 1)), day = week.getDay();
-          week = day > 4 || day === 0 ? timeMonday.ceil(week) : timeMonday(week);
+          week = day > 4 || day === 0 ? monday.ceil(week) : monday(week);
           week = timeDay.offset(week, (d.V - 1) * 7);
           d.y = week.getFullYear();
           d.m = week.getMonth();
@@ -4849,17 +4850,17 @@ function formatWeekdayNumberMonday(d) {
 }
 
 function formatWeekNumberSunday(d, p) {
-  return pad(timeSunday.count(timeYear(d) - 1, d), p, 2);
+  return pad(sunday.count(timeYear(d) - 1, d), p, 2);
 }
 
 function dISO(d) {
   var day = d.getDay();
-  return (day >= 4 || day === 0) ? timeThursday(d) : timeThursday.ceil(d);
+  return (day >= 4 || day === 0) ? thursday(d) : thursday.ceil(d);
 }
 
 function formatWeekNumberISO(d, p) {
   d = dISO(d);
-  return pad(timeThursday.count(timeYear(d), d) + (timeYear(d).getDay() === 4), p, 2);
+  return pad(thursday.count(timeYear(d), d) + (timeYear(d).getDay() === 4), p, 2);
 }
 
 function formatWeekdayNumberSunday(d) {
@@ -4867,7 +4868,7 @@ function formatWeekdayNumberSunday(d) {
 }
 
 function formatWeekNumberMonday(d, p) {
-  return pad(timeMonday.count(timeYear(d) - 1, d), p, 2);
+  return pad(monday.count(timeYear(d) - 1, d), p, 2);
 }
 
 function formatYear(d, p) {
@@ -4885,7 +4886,7 @@ function formatFullYear(d, p) {
 
 function formatFullYearISO(d, p) {
   var day = d.getDay();
-  d = (day >= 4 || day === 0) ? timeThursday(d) : timeThursday.ceil(d);
+  d = (day >= 4 || day === 0) ? thursday(d) : thursday.ceil(d);
   return pad(d.getFullYear() % 10000, p, 4);
 }
 
@@ -4909,7 +4910,7 @@ function formatUTCHour12(d, p) {
 }
 
 function formatUTCDayOfYear(d, p) {
-  return pad(1 + utcDay.count(utcYear(d), d), p, 3);
+  return pad(1 + utcDay$1.count(utcYear$1(d), d), p, 3);
 }
 
 function formatUTCMilliseconds(d, p) {
@@ -4938,7 +4939,7 @@ function formatUTCWeekdayNumberMonday(d) {
 }
 
 function formatUTCWeekNumberSunday(d, p) {
-  return pad(utcSunday.count(utcYear(d) - 1, d), p, 2);
+  return pad(utcSunday.count(utcYear$1(d) - 1, d), p, 2);
 }
 
 function UTCdISO(d) {
@@ -4948,7 +4949,7 @@ function UTCdISO(d) {
 
 function formatUTCWeekNumberISO(d, p) {
   d = UTCdISO(d);
-  return pad(utcThursday.count(utcYear(d), d) + (utcYear(d).getUTCDay() === 4), p, 2);
+  return pad(utcThursday.count(utcYear$1(d), d) + (utcYear$1(d).getUTCDay() === 4), p, 2);
 }
 
 function formatUTCWeekdayNumberSunday(d) {
@@ -4956,7 +4957,7 @@ function formatUTCWeekdayNumberSunday(d) {
 }
 
 function formatUTCWeekNumberMonday(d, p) {
-  return pad(utcMonday.count(utcYear(d) - 1, d), p, 2);
+  return pad(utcMonday.count(utcYear$1(d) - 1, d), p, 2);
 }
 
 function formatUTCYear(d, p) {
@@ -5080,7 +5081,7 @@ function calendar(ticks, tickInterval, year, month, week, day, hour, minute, sec
 }
 
 function time() {
-  return initRange.apply(calendar(timeTicks, timeTickInterval, timeYear, timeMonth, timeSunday, timeDay, timeHour, timeMinute, second, timeFormat).domain([new Date(2000, 0, 1), new Date(2000, 0, 2)]), arguments);
+  return initRange.apply(calendar(timeTicks, timeTickInterval, timeYear, timeMonth, sunday, timeDay, timeHour, timeMinute, utcSecond, timeFormat).domain([new Date(2000, 0, 1), new Date(2000, 0, 2)]), arguments);
 }
 
 function colors$1(specifier) {
@@ -5092,20 +5093,6 @@ function colors$1(specifier) {
 var schemeAccent = colors$1("7fc97fbeaed4fdc086ffff99386cb0f0027fbf5b17666666");
 
 const colors = ordinal(schemeAccent);
-const NodeFont = "10px sans-serif";
-let measureTextDiv;
-function measureText(font, text) {
-  if (!measureTextDiv) {
-    measureTextDiv = document.createElement("div");
-    measureTextDiv.style.visibility = "hidden";
-    measureTextDiv.style.display = "inline-block";
-    document.body.appendChild(measureTextDiv);
-  }
-  measureTextDiv.innerText = text;
-  measureTextDiv.style.font = font;
-  const bounds = measureTextDiv.getBoundingClientRect();
-  return { width: bounds.width, height: bounds.height };
-}
 function timeline() {
   const outerWidth = 960;
   const outerHeight = 500;
@@ -5122,8 +5109,6 @@ function timeline() {
     outerHeight,
     brushHeight: 50,
     axisHeight: 20,
-    perfTimelineHeight: 100,
-    perfTimelineData: {},
     width,
     height,
     margin,
@@ -5138,13 +5123,19 @@ function timeline() {
   let chartContainer;
   let timelineXScale;
   let brushXScale;
+  const rebuildTimelineXScale = () => {
+    timelineXScale = createXScale(options);
+    if (options.currentDomain && options.currentDomain.length === 2) {
+      timelineXScale.domain(options.currentDomain);
+    }
+  };
   const timeline2 = {
     width: function(width2) {
       if (typeof width2 === "number") {
         options.outerWidth = width2;
         options.width = options.outerWidth - options.margin.left - options.margin.right;
         if (chartContainer) {
-          timelineXScale = createXScale(options);
+          rebuildTimelineXScale();
           brushXScale = createXScale(options);
           updateChartContainer(chartContainer, options);
           updateChart(chartContainer.container, timelineXScale, brushXScale, options);
@@ -5173,7 +5164,7 @@ function timeline() {
         options.width = options.outerWidth - options.margin.left - options.margin.right;
         options.height = options.outerHeight - options.margin.top - options.margin.bottom;
         if (chartContainer) {
-          timelineXScale = createXScale(options);
+          rebuildTimelineXScale();
           updateChartContainer(chartContainer, options);
           updateChart(chartContainer.container, timelineXScale, brushXScale, options);
         }
@@ -5286,7 +5277,7 @@ function timeline() {
       if (!!data && Array.isArray(data)) {
         options.data = data;
         if (chartContainer) {
-          timelineXScale = createXScale(options);
+          rebuildTimelineXScale();
           brushXScale = createXScale(options);
           updateChart(chartContainer.container, timelineXScale, brushXScale, options);
         }
@@ -5295,27 +5286,6 @@ function timeline() {
         return options.data;
       }
     },
-    perfData: function(data) {
-      if (data) {
-        options.perfTimelineData = data;
-        if (chartContainer) {
-          timelineXScale = createXScale(options);
-          brushXScale = createXScale(options);
-          updateChart(chartContainer.container, timelineXScale, brushXScale, options);
-        }
-      }
-      return timeline2;
-    },
-    perfHeight: function(height2) {
-      if (typeof height2 === "number") {
-        options.perfTimelineHeight = height2;
-        if (chartContainer) {
-          updateChartContainer(chartContainer, options);
-          updateChart(chartContainer.container, timelineXScale, brushXScale, options);
-        }
-      }
-      return timeline2;
-    },
     render: function(domElement) {
       if (!chartContainer) {
         chartContainer = createChartContainer(domElement, options);
@@ -5323,7 +5293,7 @@ function timeline() {
       if (options.showTooltips && select("#timeline-tooltip").empty()) {
         createTooltipHost();
       }
-      timelineXScale = createXScale(options);
+      rebuildTimelineXScale();
       brushXScale = createXScale(options);
       updateChart(chartContainer.container, timelineXScale, brushXScale, options);
       return timeline2;
@@ -5348,26 +5318,8 @@ function updateChartContainer(chartContainer, options) {
   container.style("width", `${options.width}px`).style("height", `${options.height}px`).style("background-color", options.backgroundColor);
 }
 function createXScale(options) {
-  const domainExtent = extent([...options.data.map((d) => new Date(d.start)), ...options.data.map((d) => new Date(d.end ?? ""))]);
-  const safeWidth = Math.max(options.width, 64);
-  let rangeEnd = safeWidth - 16;
-  const rangeEndMin = rangeEnd / 2;
-  const scale = time().domain(domainExtent).range([16, rangeEnd]);
-  for (let i = 0; i < 2; ++i) {
-    let textEnd = 0;
-    for (let d of options.data) {
-      const x = scale(new Date(d.start)) + 4 + measureText(NodeFont, options.text ? options.text(d) : d.name).width;
-      if (x >= textEnd)
-        textEnd = x;
-    }
-    if (textEnd <= safeWidth - 16)
-      break;
-    rangeEnd -= textEnd - (safeWidth - 16);
-    if (rangeEnd < rangeEndMin)
-      rangeEnd = rangeEndMin;
-    scale.range([16, rangeEnd]);
-  }
-  return scale;
+  const rangeEnd = Math.max(options.width, 64) - 16;
+  return time().domain(extent([...options.data.map((d) => new Date(d.start)), ...options.data.map((d) => new Date(d.end))])).range([16, rangeEnd]);
 }
 function normalizeGroupName(group2) {
   return (group2 || "none").toLocaleLowerCase().replaceAll(" ", "-");
@@ -5378,14 +5330,9 @@ function getGroupContainerId(group2) {
 function getGroupSvgId(group2) {
   return `group-${normalizeGroupName(group2)}-svg`;
 }
-function getPerfChartHeight(options) {
-  return options.perfTimelineHeight && Object.keys(options.perfTimelineData).length !== 0 ? options.perfTimelineHeight : 0;
-}
 function updateChart(chart, timelineXScale, brushXScale, options) {
   const groupMap = group(options.data, (d) => d.group);
   updateGroups(chart, groupMap, options);
-  updatePerfBox(chart, groupMap, options);
-  updatePerfBoxChart(chart, timelineXScale, groupMap, options);
   updateGridlines(chart, timelineXScale, groupMap, options);
   updateNodes(chart, timelineXScale, groupMap, options);
   updateAxis(chart, timelineXScale, options);
@@ -5394,157 +5341,75 @@ function updateChart(chart, timelineXScale, brushXScale, options) {
 function updateGroups(chart, groupMap, options) {
   const axisHeight = options.xAxis ? options.axisHeight : 0;
   const brushHeight = options.xBrush ? options.brushHeight + axisHeight : 0;
-  const perfTimelineHeight = getPerfChartHeight(options);
-  const groupHeight = (options.height - brushHeight - axisHeight - perfTimelineHeight * (groupMap.size || 1)) / (groupMap.size || 1);
-  chart.select("#timeline-groups").selectAll("div").data(groupMap).join(
-    function enter(enter) {
-      const group2 = enter.append("div").attr("id", (g) => getGroupContainerId(g[0])).style("border-bottom", (_, index, array) => array.length - 1 === index ? "" : "1px solid").style("width", "100%").style("height", `${groupHeight}px`).style("overflow-y", "auto").style("overflow-x", "hidden");
-      enter.each(function(g) {
-        select(`#perfbox-${normalizeGroupName(g[0])}`).remove();
-        const element = document.querySelector(`#group-${normalizeGroupName(g[0])}-container`);
-        const test = document.createElement("span");
-        test.id = `perfbox-${normalizeGroupName(g[0])}`;
-        element?.insertAdjacentElement("afterend", test);
-      });
-      const svg = group2.append("svg").attr("id", (g) => getGroupSvgId(g[0])).attr("width", "100%").attr("height", (g) => `${Math.max(groupHeight, g[1].length * options.rowHeight)}px`);
-      svg.append("g").attr("class", "group-label").append("text").style("font", "11px sans-serif").attr("transform", "translate(0, 50) rotate(270)").attr("x", groupHeight / 2 * -1).attr("y", 12).text((g) => g[0]).each(function() {
-        const self = select(this);
-        let textLength = self.node()?.getComputedTextLength();
-        let text = self.text();
-        while (textLength > groupHeight - 2 * 4 && text.length > 0) {
-          text = text.slice(0, -1);
-          self.text(text + "...");
-          textLength = self.node()?.getComputedTextLength();
-        }
-      });
-      svg.append("g").attr("class", "gridlines");
-      return svg;
-    },
-    function update(update) {
-      return update.style("border-bottom", (_, index, array) => array.length - 1 === index ? "" : "1px solid").style("height", `${groupHeight}px`).selectAll("svg").attr("height", (g) => `${Math.max(groupHeight, g[1].length * options.rowHeight)}px`);
-    },
-    function exit(exit) {
-      return exit.remove();
-    }
-  );
-}
-function updatePerfBox(chart, groupMap, options) {
-  const perfTimelineHeight = getPerfChartHeight(options);
-  const perfTimelineData = new InternMap();
-  for (const key of Object.keys(options.perfTimelineData)) {
-    perfTimelineData.set(key, options.perfTimelineData[key]);
-  }
-  for (const group2 of Array.from(groupMap.keys())) {
-    const id = `#perfbox-${normalizeGroupName(group2)}`;
-    if (perfTimelineData.get(group2)) {
-      chart.select(id).selectAll(`svg`).data([group2]).join(
-        function enter(enter) {
-          return enter.append("svg").attr("id", `perfbox-${normalizeGroupName(group2)}-svg`).attr("height", `${perfTimelineHeight}px`).attr("width", "100%");
-        },
-        function update(update) {
-          return update;
-        },
-        function exit(exit) {
-          return exit.remove();
-        }
-      );
-    }
-  }
-}
-function updatePerfBoxChart(chart, timelineXScale, groupMap, options) {
-  const perfTimelineData = new InternMap();
-  for (const key of Object.keys(options.perfTimelineData)) {
-    perfTimelineData.set(key, options.perfTimelineData[key]);
-  }
-  for (const group2 of Array.from(groupMap.keys())) {
-    const svgId = `#perfbox-${normalizeGroupName(group2)}-svg`;
-    chart.select(svgId).selectAll("g").data(perfTimelineData.get(group2) ?? []).join(
-      function enter(enter) {
-        return enter.append("g").each(function() {
-          select(this).append("rect");
-        });
-      },
-      function update(update) {
-        updatePerfBoxChartBars(chart, timelineXScale, groupMap, options);
-        return update;
-      },
-      function exit(exit) {
-        return exit.remove();
+  const groupHeight = (options.height - brushHeight - axisHeight) / (groupMap.size || 1);
+  chart.select("#timeline-groups").selectAll("div").data(groupMap).join(function enter(enter) {
+    const group2 = enter.append("div").attr("id", (g) => getGroupContainerId(g[0])).style("border-bottom", (_, index, array) => array.length - 1 === index ? "" : "1px solid").style("width", "100%").style("height", `${groupHeight}px`).style("overflow-y", "auto").style("overflow-x", "hidden");
+    const svg = group2.append("svg").attr("id", (g) => getGroupSvgId(g[0])).attr("width", "100%").attr("height", (g) => `${Math.max(groupHeight, g[1].length * options.rowHeight)}px`);
+    svg.append("g").attr("class", "group-label").append("text").style("font", "11px sans-serif").attr("transform", "translate(0, 50) rotate(270)").attr("x", groupHeight / 2 * -1).attr("y", 12).text((g) => g[0]).each(function() {
+      const self = select(this);
+      let textLength = self.node().getComputedTextLength();
+      let text = self.text();
+      while (textLength > groupHeight - 2 * 4 && text.length > 0) {
+        text = text.slice(0, -1);
+        self.text(text + "...");
+        textLength = self.node().getComputedTextLength();
       }
-    );
-  }
-}
-function updatePerfBoxChartBars(chart, timelineXScale, groupMap, options) {
-  const perfTimelineHeight = getPerfChartHeight(options);
-  for (const group2 of Array.from(groupMap.keys())) {
-    const groupId = `#perfbox-${normalizeGroupName(group2)}-svg`;
-    const firstEvent = groupMap.get(group2)?.reduce((previous, current) => {
-      return current.start && new Date(current.start) < new Date(previous.start) ? current : previous;
     });
-    const svg = chart.select(groupId);
-    const svgGroups = chart.select(groupId).selectAll("g");
-    svgGroups.attr("transform", (d) => d.start ? `translate(${timelineXScale(d.start + new Date(firstEvent?.start ?? "").getTime())}, 0)` : "");
-    const entryHeight = (entry) => Math.max(0, Math.min(1, (entry.taskTime + entry.visualTime + entry.changeDetectionTime + entry.browserRenderTime) / (entry.end - entry.start))) * perfTimelineHeight;
-    const intervalNodes = svg.selectAll("g");
-    intervalNodes.selectAll("rect").attr("width", (d) => timelineXScale(d.end + new Date(firstEvent?.start ?? "").getTime()) - timelineXScale(d.start + new Date(firstEvent?.start ?? "").getTime())).attr("height", (d) => entryHeight(d)).style("fill", () => "orange").style("fill-opacity", (d) => options.highlight && options.highlight(d) !== void 0 ? options.highlight(d) ? 1 : 0.2 : 1).style("stroke", (d) => options.highlight && options.highlight(d) !== void 0 ? options.highlight(d) ? "none" : "black" : "none");
-  }
+    svg.append("g").attr("class", "gridlines");
+    return svg;
+  }, function update(update) {
+    return update.style("border-bottom", (_, index, array) => array.length - 1 === index ? "" : "1px solid").style("height", `${groupHeight}px`).selectAll("svg").attr("height", (g) => `${Math.max(groupHeight, g[1].length * options.rowHeight)}px`);
+  }, function exit(exit) {
+    return exit.remove();
+  });
 }
 function updateGridlines(chart, timelineXScale, groupMap, options) {
   const axisHeight = options.xAxis ? options.axisHeight : 0;
   const brushHeight = options.xBrush ? options.brushHeight + axisHeight : 0;
-  const perfTimelineHeight = getPerfChartHeight(options);
-  const groupHeight = (options.height - brushHeight - axisHeight - perfTimelineHeight * (groupMap.size || 1)) / (groupMap.size || 1);
-  for (const group2 of Array.from(groupMap.keys())) {
+  const groupHeight = (options.height - brushHeight - axisHeight) / (groupMap.size || 1);
+  for (const group2 of groupMap.keys()) {
     const groupId = `#${getGroupSvgId(group2)}`;
-    chart.select(groupId).select(".gridlines").selectAll("line").data(timelineXScale.ticks(20), (d) => d.getTime()).join(
-      function enter(enter) {
-        return enter.append("line").attr("y1", 0).attr("shape-rendering", "crispEdges").attr("stroke-width", "1px").attr("x1", (d) => timelineXScale(d)).attr("x2", (d) => timelineXScale(d)).attr("y2", Math.max(groupHeight, groupMap.get(group2)?.length * options.rowHeight)).attr("stroke", options.gridColor);
-      },
-      function update(update) {
-        return update.attr("x1", (d) => timelineXScale(d)).attr("x2", (d) => timelineXScale(d)).attr("y2", Math.max(groupHeight, groupMap.get(group2)?.length * options.rowHeight)).attr("stroke", options.gridColor);
-      },
-      function exit(exit) {
-        return exit.remove();
-      }
-    );
+    chart.select(groupId).select(".gridlines").selectAll("line").data(timelineXScale.ticks(20), (d) => d.getTime()).join(function enter(enter) {
+      return enter.append("line").attr("y1", 0).attr("shape-rendering", "crispEdges").attr("stroke-width", "1px").attr("x1", (d) => timelineXScale(d)).attr("x2", (d) => timelineXScale(d)).attr("y2", Math.max(groupHeight, groupMap.get(group2).length * options.rowHeight)).attr("stroke", options.gridColor);
+    }, function update(update) {
+      return update.attr("x1", (d) => timelineXScale(d)).attr("x2", (d) => timelineXScale(d)).attr("y2", Math.max(groupHeight, groupMap.get(group2).length * options.rowHeight)).attr("stroke", options.gridColor);
+    }, function exit(exit) {
+      return exit.remove();
+    });
   }
 }
 function updateNodes(chart, timelineXScale, groupMap, options) {
   const nodeHeight = options.rowHeight * 0.8;
-  for (const group2 of Array.from(groupMap.keys())) {
+  for (const group2 of groupMap.keys()) {
     const groupId = `#${getGroupSvgId(group2)}`;
     const groupData = options.data.filter((d) => d.group === group2);
-    chart.select(groupId).selectAll("g.datapoint").data(groupData, (d) => `${d.start.toString()}-${d.id}`).join(
-      function enter(enter) {
-        return enter.append("g").attr("class", (d) => d.end || d.start === d.end ? "datapoint interval" : "datapoint instant").each(function(d) {
-          const node = select(this);
-          if (d.end || d.start === d.end) {
-            node.append("rect").attr("height", nodeHeight);
-            node.append("text").style("font", NodeFont).attr("x", 4).attr("y", 12).text((d2) => options.text ? options.text(d2) : d2.name);
-          } else {
-            node.append("circle").attr("cx", nodeHeight / 2).attr("cy", nodeHeight / 2).attr("r", 5);
-            node.append("text").style("font", NodeFont).attr("x", 16).attr("y", 12).text((d2) => options.text ? options.text(d2) : d2.name);
-          }
-        });
-      },
-      function update(update) {
-        updateNodeInternal(chart, timelineXScale, groupMap, options);
-        return update;
-      },
-      function exit(exit) {
-        return exit.remove();
-      }
-    );
+    chart.select(groupId).selectAll("g.datapoint").data(groupData, (d) => d.start.toString()).join(function enter(enter) {
+      return enter.append("g").attr("class", (d) => d.end || d.start === d.end ? "datapoint interval" : "datapoint instant").each(function(d) {
+        const node = select(this);
+        if (d.end || d.start === d.end) {
+          node.append("rect").attr("height", nodeHeight);
+          node.append("text").style("font", "10px sans-serif").attr("x", 4).attr("y", 12).text((d2) => options.text ? options.text(d2) : d2.name);
+        } else {
+          node.append("circle").attr("cx", nodeHeight / 2).attr("cy", nodeHeight / 2).attr("r", 5);
+          node.append("text").style("font", "10px sans-serif").attr("x", 16).attr("y", 12).text((d2) => options.text ? options.text(d2) : d2.name);
+        }
+      });
+    }, function update(update) {
+      updateNodeInternal(chart, timelineXScale, groupMap, options);
+      return update;
+    }, function exit(exit) {
+      return exit.remove();
+    });
   }
 }
 function updateNodeInternal(chart, timelineXScale, groupMap, options) {
-  for (const group2 of Array.from(groupMap.keys())) {
+  for (const group2 of groupMap.keys()) {
     const groupId = `#${getGroupSvgId(group2)}`;
     const svg = chart.select(groupId);
     const svgGroups = chart.select(groupId).selectAll("g.datapoint");
     svgGroups.attr("transform", (d, i) => `translate(${timelineXScale(new Date(d.start).getTime())}, ${(d.track ?? i) * options.rowHeight})`);
     const intervalNodes = svg.selectAll(".interval");
-    intervalNodes.selectAll("rect").attr("width", (d) => Math.abs(timelineXScale(new Date(d.end)) - timelineXScale(new Date(d.start)))).style("fill", (d) => options.nodeColor ? options.nodeColor(d) : colors(d.start.toString())).style("fill-opacity", (d) => options.highlight && options.highlight(d) !== void 0 ? options.highlight(d) ? 1 : 0.2 : 1).style("stroke", (d) => options.highlight && options.highlight(d) !== void 0 ? options.highlight(d) ? "none" : "black" : "none");
+    intervalNodes.selectAll("rect").attr("width", (d) => Math.max(0, timelineXScale(new Date(d.end)) - timelineXScale(new Date(d.start)))).style("fill", (d) => options.nodeColor ? options.nodeColor(d) : colors(d.start.toString())).style("fill-opacity", (d) => options.highlight && options.highlight(d) !== void 0 ? options.highlight(d) ? 1 : 0.2 : 1).style("stroke", (d) => options.highlight && options.highlight(d) !== void 0 ? options.highlight(d) ? "none" : "black" : "none");
     const instantNodes = svg.selectAll(".instant");
     instantNodes.selectAll("circle").style("fill", (d) => options.nodeColor ? options.nodeColor(d) : colors(d.start.toString())).style("fill-opacity", (d) => options.highlight && options.highlight(d) !== void 0 ? options.highlight(d) ? 1 : 0.5 : 1).style("stroke", (d) => options.highlight && options.highlight(d) !== void 0 ? options.highlight(d) ? "none" : "black" : "none");
     intervalNodes.selectAll("text").style("fill", (d) => options.textColor ? options.textColor(d) : "black");
@@ -5556,8 +5421,7 @@ function updateNodeInternal(chart, timelineXScale, groupMap, options) {
 function updateTooltips(svgGroups, groupMap, options) {
   const axisHeight = options.xAxis ? options.axisHeight : 0;
   const brushHeight = options.xBrush ? options.brushHeight + axisHeight : 0;
-  const perfTimelineHeight = getPerfChartHeight(options);
-  const groupHeight = (options.height - brushHeight - axisHeight - perfTimelineHeight) / (groupMap.size || 1);
+  const groupHeight = (options.height - brushHeight - axisHeight) / (groupMap.size || 1);
   if (options.showTooltips) {
     const tooltip = select("#timeline-tooltip");
     svgGroups.on("mouseover", (event, d) => {
@@ -5568,10 +5432,10 @@ function updateTooltips(svgGroups, groupMap, options) {
     svgGroups.on("mouseout", () => tooltip.style("visibility", "hidden"));
   } else if (options.tooltips && typeof options.tooltips === "function") {
     svgGroups.on("mouseover", function(_, d) {
-      options.tooltips?.(this, true, d);
+      options.tooltips(this, true, d);
     });
     svgGroups.on("mouseout", function(_, d) {
-      options.tooltips?.(this, false, d);
+      options.tooltips(this, false, d);
     });
   }
 }
@@ -5580,15 +5444,27 @@ function updateClickHandler(svgGroups, options, chart, timelineXScale, groupMap)
     svgGroups.on(".click", null);
     svgGroups.attr("cursor", "pointer");
     svgGroups.on("click", function(event, d) {
-      options.click?.(event, d);
+      options.click(event, d);
       updateNodeInternal(chart, timelineXScale, groupMap, options);
-      updatePerfBox(chart, groupMap, options);
-      updatePerfBoxChartBars(chart, timelineXScale, groupMap, options);
     });
   } else {
     svgGroups.attr("cursor", "auto");
     svgGroups.on(".click", null);
   }
+}
+function createTimeAxisFormat(scale, tickCount) {
+  const ticks = scale.ticks(tickCount);
+  const domain = scale.domain();
+  const stepMs = ticks.length >= 2 ? Math.abs(ticks[1].getTime() - ticks[0].getTime()) : Math.abs(domain[domain.length - 1].getTime() - domain[0].getTime());
+  const pad = (value) => (value < 10 ? "0" : "") + value;
+  if (stepMs < 6e4) {
+    return (date) => `${date.getHours()}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  }
+  if (stepMs < 864e5) {
+    return (date) => `${date.getHours()}:${pad(date.getMinutes())}`;
+  }
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return (date) => `${months[date.getMonth()]} ${pad(date.getDate())} ${date.getHours()}:${pad(date.getMinutes())}`;
 }
 function updateAxis(chart, timelineXScale, options) {
   if (options.xAxis) {
@@ -5596,12 +5472,12 @@ function updateAxis(chart, timelineXScale, options) {
     if (axisContainer.empty()) {
       axisContainer = chart.append("div").attr("id", "timeline-x-axis").style("width", "100%").style("height", `${options.axisHeight}px`);
     }
-    const axisSvg = axisContainer.select("#timeline-x-axis-svg");
+    let axisSvg = axisContainer.select("#timeline-x-axis-svg");
     if (!axisSvg.empty()) {
       axisSvg.remove();
     }
     if (options.data.length > 0) {
-      const xAxis = axisBottom(timelineXScale).ticks(10);
+      const xAxis = axisBottom(timelineXScale).ticks(10).tickFormat(createTimeAxisFormat(timelineXScale, 10));
       axisContainer.append("svg").attr("id", "timeline-x-axis-svg").attr("width", "100%").call(xAxis);
     }
   }
@@ -5612,7 +5488,7 @@ function updateBrush(chart, brushXScale, timelineXScale, groupMap, options) {
     const rowHeight = Math.min(brushHeight / options.data.length, 20);
     const nodeHeight = rowHeight * 0.8;
     let brushContainer = chart.select("#brush-container");
-    const brushAxisSvg = chart.select("#brush-x-axis-svg");
+    let brushAxisSvg = chart.select("#brush-x-axis-svg");
     if (brushContainer.empty()) {
       brushContainer = chart.append("div").attr("id", "brush-container").style("width", "100%").style("height", `${brushHeight}px`);
     }
@@ -5628,40 +5504,62 @@ function updateBrush(chart, brushXScale, timelineXScale, groupMap, options) {
       brushSvg = brushContainer.append("svg").attr("id", "brush-svg").attr("width", "100%").attr("height", `${options.data.length * rowHeight}px`);
     }
     const brushGroups = brushSvg.selectAll("g.datapoint").data(options.data, (d) => d.start.toString());
-    brushGroups.join(
-      function enter(enter) {
-        const groups = enter.append("g").attr("class", (d) => d.end ? "datapoint interval" : "datapoint instant").attr("transform", (d, i) => `translate(${brushXScale(new Date(d.start).getTime())}, ${i * rowHeight})`);
-        groups.filter((d) => !!d.end).append("rect").attr("height", nodeHeight).attr("width", (d) => Math.abs(brushXScale(new Date(d.end ?? "")) - brushXScale(new Date(d.start)))).style("fill", (d) => options.nodeColor ? options.nodeColor(d) : colors(d.start.toString()));
-        groups.filter((d) => !d.end).append("circle").attr("cx", nodeHeight / 2).attr("cy", nodeHeight / 2).attr("r", 2).style("fill", (d) => options.nodeColor ? options.nodeColor(d) : colors(d.start.toString()));
-        return groups;
-      },
-      function update(update) {
-        update.attr("transform", (d, i) => `translate(${brushXScale(new Date(d.start).getTime())}, ${i * rowHeight})`);
-        update.selectAll("rect").attr("width", (d) => Math.abs(brushXScale(new Date(d.end)) - brushXScale(new Date(d.start)))).style("fill", (d) => options.nodeColor ? options.nodeColor(d) : colors(d.start.toString()));
-        update.selectAll("circle").style("fill", (d) => options.nodeColor ? options.nodeColor(d) : colors(d.start.toString()));
-        return update;
-      },
-      function exit(exit) {
-        return exit.remove();
+    brushGroups.join(function enter(enter) {
+      const groups = enter.append("g").attr("class", (d) => d.end ? "datapoint interval" : "datapoint instant").attr("transform", (d, i) => `translate(${brushXScale(new Date(d.start).getTime())}, ${i * rowHeight})`);
+      groups.filter((d) => !!d.end).append("rect").attr("height", nodeHeight).attr("width", (d) => Math.max(0, brushXScale(new Date(d.end)) - brushXScale(new Date(d.start)))).style("fill", (d) => options.nodeColor ? options.nodeColor(d) : colors(d.start.toString()));
+      groups.filter((d) => !d.end).append("circle").attr("cx", nodeHeight / 2).attr("cy", nodeHeight / 2).attr("r", 2).style("fill", (d) => options.nodeColor ? options.nodeColor(d) : colors(d.start.toString()));
+      return groups;
+    }, function update(update) {
+      update.attr("transform", (d, i) => `translate(${brushXScale(new Date(d.start).getTime())}, ${i * rowHeight})`);
+      update.selectAll("rect").attr("width", (d) => Math.max(0, brushXScale(new Date(d.end)) - brushXScale(new Date(d.start)))).style("fill", (d) => options.nodeColor ? options.nodeColor(d) : colors(d.start.toString()));
+      update.selectAll("circle").style("fill", (d) => options.nodeColor ? options.nodeColor(d) : colors(d.start.toString()));
+      return update;
+    }, function exit(exit) {
+      return exit.remove();
+    });
+    const brushSvgNode = brushSvg.node();
+    if (brushSvgNode) {
+      const ctx = brushSvgNode.__brushCtx ?? (brushSvgNode.__brushCtx = {
+        brushXScale,
+        timelineXScale,
+        chart,
+        groupMap,
+        options
+      });
+      ctx.brushXScale = brushXScale;
+      ctx.timelineXScale = timelineXScale;
+      ctx.chart = chart;
+      ctx.groupMap = groupMap;
+      ctx.options = options;
+      const extentEnd = brushXScale.range()[1];
+      let brushGroup = brushSvg.select("#brush-group");
+      const rebuildBrush = brushGroup.empty() || brushSvgNode.__brushExtentEnd !== extentEnd;
+      if (rebuildBrush) {
+        const handleBrush = (event) => {
+          if (!event.sourceEvent) {
+            return;
+          }
+          const domain = event.selection === null ? ctx.brushXScale.domain() : event.selection.map(ctx.brushXScale.invert);
+          ctx.options.currentDomain = event.selection === null ? void 0 : domain;
+          ctx.timelineXScale.domain(domain);
+          updateGridlines(ctx.chart, ctx.timelineXScale, ctx.groupMap, ctx.options);
+          updateNodeInternal(ctx.chart, ctx.timelineXScale, ctx.groupMap, ctx.options);
+          updateAxis(ctx.chart, ctx.timelineXScale, ctx.options);
+        };
+        const brush = brushX().extent([[16, 0], [extentEnd, brushHeight]]).on("brush", handleBrush).on("end", handleBrush);
+        if (brushGroup.empty()) {
+          brushGroup = brushSvg.append("g").attr("id", "brush-group");
+        }
+        brushSvgNode.__brushExtentEnd = extentEnd;
+        brushGroup.call(brush);
+        if (options.currentDomain && options.currentDomain.length === 2) {
+          brushGroup.call(brush.move, [brushXScale(options.currentDomain[0]), brushXScale(options.currentDomain[1])]);
+        }
       }
-    );
-    const handleBrush = (event) => {
-      if (!event.sourceEvent) {
-        return;
+      if (!brushGroup.empty()) {
+        brushGroup.raise();
       }
-      const domain = event.selection === null ? brushXScale.domain() : event.selection.map(brushXScale.invert);
-      timelineXScale.domain(domain);
-      updateGridlines(chart, timelineXScale, groupMap, options);
-      updateNodeInternal(chart, timelineXScale, groupMap, options);
-      updatePerfBoxChartBars(chart, timelineXScale, groupMap, options);
-      updateAxis(chart, timelineXScale, options);
-    };
-    const existingBrush = brushSvg.select("#brush-group");
-    if (!existingBrush.empty()) {
-      existingBrush.remove();
     }
-    const brush = brushX().extent([[16, 0], [brushXScale.range()[1], brushHeight]]).on("brush", handleBrush).on("end", handleBrush);
-    brushSvg.append("g").attr("id", "brush-group").call(brush);
     if (options.xAxis) {
       let brushAxisContainer = chart.select("#brush-x-axis");
       if (brushAxisContainer.empty()) {
@@ -5670,7 +5568,7 @@ function updateBrush(chart, brushXScale, timelineXScale, groupMap, options) {
       if (!brushAxisSvg.empty()) {
         brushAxisSvg.remove();
       }
-      const xAxis = axisBottom(brushXScale).ticks(10);
+      const xAxis = axisBottom(brushXScale).ticks(10).tickFormat(createTimeAxisFormat(brushXScale, 10));
       brushAxisContainer.append("svg").attr("id", "brush-x-axis-svg").attr("width", "100%").call(xAxis);
     }
   }
